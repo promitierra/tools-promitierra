@@ -1,4 +1,11 @@
-customtkinter
-Pillow
+# Dependencias principales
+Pillow>=10.3.0  # Actualizado por vulnerabilidad de seguridad en ImageMath.eval
+customtkinter>=5.2.2
+pathlib>=1.0.1
 pandas
 openpyxl
+
+# Dependencias de desarrollo
+pytest>=8.3.4
+coverage>=7.3.0
+pylint>=3.3.3

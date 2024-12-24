@@ -1,3 +1,5 @@
+print("Iniciando aplicación...")
+
 import os
 import customtkinter as ctk
 from PIL import Image
@@ -7,13 +9,16 @@ import zipfile
 from datetime import datetime
 import shutil
 import tempfile
+import pandas as pd
+import openpyxl
+from openpyxl import Workbook
 
 class ImagenAPdfApp:
     def __init__(self):
         # Configuración de la ventana principal
         self.ventana = ctk.CTk()
-        self.ventana.title("Conversor en lote de imágenes a PDF")
-        self.ventana.geometry("450x800")  # Aumentamos aún más la altura
+        self.ventana.title("Herramientas de Productividad")
+        self.ventana.geometry("500x500")  # Reducimos significativamente la altura
         self.ventana.resizable(False, False)  # Bloqueamos el redimensionamiento
         
         # Configurar el tema
@@ -27,127 +32,265 @@ class ImagenAPdfApp:
         
         # Crear el contenido de la ventana
         self.crear_widgets()
-        
+
+    def iniciar(self):
+        # Iniciar el mainloop
+        self.ventana.mainloop()
+
     def crear_widgets(self):
-        # Frame principal con padding
-        frame = ctk.CTkFrame(self.ventana)
-        frame.pack(pady=20, padx=20, fill="both", expand=True)
+        # Preparar la estructura para agregar pestañas
+        self.notebook = ctk.CTkTabview(self.ventana)
+        self.notebook.pack(pady=20, padx=20, fill="both", expand=True)
         
+        # Agregar pestañas en el orden deseado
+        self.pestaña_carpetas = self.notebook.add("Crear Carpetas")  # Primera pestaña
+        self.pestaña_principal = self.notebook.add("imagenes a PDFs")     # Segunda pestaña
+        
+        # Crear contenido de las pestañas
+        self.crear_contenido_pestaña_carpetas()
+        self.crear_contenido_pestaña_principal()
+        
+
+    def crear_contenido_pestaña_carpetas(self):
+        # Frame principal con padding mínimo
+        frame = ctk.CTkFrame(self.pestaña_carpetas)
+        frame.pack(pady=10, padx=10, fill="both", expand=True)
+        
+        # Título
+        titulo = ctk.CTkLabel(frame, text="Creación Masiva de Carpetas", 
+                            font=ctk.CTkFont(size=20, weight="bold"))
+        titulo.pack(pady=5)
+
+        # Descripción
+        descripcion1 = ctk.CTkLabel(frame, 
+            text="Descarga la plantilla Excel, completa los datos con ID, NOMBRES y APELLIDOS.",
+            font=ctk.CTkFont(size=12),
+            text_color="#CCCCCC"
+        )
+        descripcion1.pack(pady=2)
+
+        descripcion2 = ctk.CTkLabel(frame, 
+            text="Luego, carga el archivo para crear automáticamente las carpetas.",
+            font=ctk.CTkFont(size=12),
+            text_color="#CCCCCC"
+        )
+        descripcion2.pack(pady=(0,5))
+        
+        # Frame para la primera fila (plantilla y carga)
+        fila1_frame = ctk.CTkFrame(frame)
+        fila1_frame.pack(fill="x", padx=10, pady=10)
+        
+        # Columna izquierda: Descargar plantilla
+        btn_descargar = ctk.CTkButton(
+            fila1_frame,
+            text="📥 Descargar Plantilla",
+            command=self.descargar_plantilla
+        )
+        btn_descargar.pack(side="left", padx=5)
+        
+        # Columna derecha: Cargar plantilla
+        btn_cargar = ctk.CTkButton(
+            fila1_frame,
+            text="📤 Cargar Plantilla",
+            command=self.cargar_plantilla
+        )
+        btn_cargar.pack(side="right", padx=5)
+        
+        # Etiqueta de estado
+        self.estado_carpetas_label = ctk.CTkLabel(frame, 
+            text="Estado: Esperando plantilla...",
+            font=ctk.CTkFont(size=12)
+        )
+        self.estado_carpetas_label.pack(pady=10)
+        
+        # Área de detalles para la creación de carpetas
+        self.detalles_carpetas_text = ctk.CTkTextbox(frame, height=100)
+        self.detalles_carpetas_text.pack(fill="x", padx=10, pady=(5,10))
+        self.detalles_carpetas_text.configure(state="disabled")
+
+        # Agregar footer
+        self.crear_footer(frame)
+        
+    def crear_contenido_pestaña_principal(self):
+        # Frame principal con padding mínimo
+        frame = ctk.CTkFrame(self.pestaña_principal)
+        frame.pack(pady=10, padx=10, fill="both", expand=True)
+
         # Título
         titulo = ctk.CTkLabel(frame, text="Conversor de Imágenes a PDF", 
                             font=ctk.CTkFont(size=20, weight="bold"))
-        titulo.pack(pady=20)
-        
-        # Frame para opciones con más espacio
-        opciones_frame = ctk.CTkFrame(frame)
-        opciones_frame.pack(fill="x", padx=20, pady=20)
-        
-        # Opciones de salida
-        titulo_opciones = ctk.CTkLabel(opciones_frame, text="Opciones de salida:",
-                                     font=ctk.CTkFont(weight="bold"))
-        titulo_opciones.pack(pady=5)
-        
-        # Opción A: Misma carpeta
-        rb_misma_carpeta = ctk.CTkRadioButton(
-            opciones_frame,
-            text="Crear PDFs en la misma ubicación que las imágenes",
+        titulo.pack(pady=5)
+
+        # Checkbox para comprimir
+        self.cb_comprimir = ctk.CTkCheckBox(
+            frame,
+            text="Generar archivos PDFs en un nuevo archivo ZIP",
             variable=self.modo_comprimido,
-            value=False
+            onvalue=True,
+            offvalue=False
         )
-        rb_misma_carpeta.pack(pady=5, padx=20, anchor="w")
-        
-        # Opción B: Archivo comprimido
-        rb_comprimido = ctk.CTkRadioButton(
-            opciones_frame,
-            text="Generar archivo ZIP con todos los PDFs",
-            variable=self.modo_comprimido,
-            value=True
+        self.cb_comprimir.pack(pady=10)
+
+        # Botón para seleccionar carpeta
+        self.btn_seleccionar = ctk.CTkButton(
+            frame,
+            text="📁 Seleccionar Carpeta de Imágenes",
+            command=self.seleccionar_carpeta
         )
-        rb_comprimido.pack(pady=5, padx=20, anchor="w")
-        
-        # Botones
-        self.btn_seleccionar = ctk.CTkButton(frame, text="Seleccionar Carpeta", 
-                                           command=self.seleccionar_carpeta)
         self.btn_seleccionar.pack(pady=10)
-        
+
         # Barra de progreso
-        self.progreso_frame = ctk.CTkFrame(frame)
-        self.progreso_frame.pack(fill="x", padx=20, pady=10)
-        self.barra_progreso = ctk.CTkProgressBar(self.progreso_frame)
+        self.barra_progreso = ctk.CTkProgressBar(frame)
         self.barra_progreso.pack(fill="x", padx=10, pady=5)
         self.barra_progreso.set(0)
-        
+
         # Etiqueta de progreso
-        self.progreso_label = ctk.CTkLabel(self.progreso_frame, text="0%")
+        self.progreso_label = ctk.CTkLabel(frame, text="0%")
         self.progreso_label.pack(pady=5)
-        
-        # Área de estado
-        self.estado_label = ctk.CTkLabel(frame, text="Estado: Esperando selección de carpeta",
-                                       font=ctk.CTkFont(size=12))
-        self.estado_label.pack(pady=10)
-        
-        # Área de detalles con scroll
-        self.detalles_text = ctk.CTkTextbox(frame, height=200)  # Aumentamos la altura del área de detalles
-        self.detalles_text.pack(fill="x", padx=20, pady=(20, 30))  # Más espacio después del área de detalles
+
+        # Etiqueta de estado
+        self.estado_label = ctk.CTkLabel(
+            frame,
+            text="Estado: Esperando selección de carpeta...",
+            font=ctk.CTkFont(size=12)
+        )
+        self.estado_label.pack(pady=5)
+
+        # Área de detalles
+        self.detalles_text = ctk.CTkTextbox(frame, height=75)
+        self.detalles_text.pack(fill="x", padx=10, pady=(5,10))
         self.detalles_text.configure(state="disabled")
-        
-        # Frame separado para créditos con fondo oscuro y más altura
-        creditos_frame = ctk.CTkFrame(self.ventana, fg_color="#2B2B2B", height=100)
-        creditos_frame.pack(side="bottom", fill="x", pady=(20, 0))  # Añadido padding superior
-        creditos_frame.pack_propagate(False)  # Mantiene la altura fija
-        
-        # Frame interno para organizar los créditos en dos líneas
-        creditos_interno = ctk.CTkFrame(creditos_frame, fg_color="transparent")
-        creditos_interno.pack(expand=True)
-        
-        # Primera línea: Nombre y año
+
+        # Agregar footer
+        self.crear_footer(frame)
+
+    def crear_footer(self, frame_padre):
+        # Frame interno para los créditos
+        creditos_interno = ctk.CTkFrame(frame_padre, fg_color="transparent")
+        creditos_interno.pack(side="bottom", fill="x", pady=(10, 3))
+
+        # Primera línea: Desarrollador y año
         creditos_linea1 = ctk.CTkLabel(
-            creditos_interno, 
+            creditos_interno,
             text="Desarrollado por: Luis Fernando Moreno Montoya | 2024",
             font=ctk.CTkFont(size=13),
             text_color="#CCCCCC"
         )
-        creditos_linea1.pack(pady=(15, 5))  # Aumentado el padding vertical
+        creditos_linea1.pack(pady=(10, 3))
         
         # Segunda línea: Mensaje especial (dividido en partes para colorear el corazón)
         mensaje_frame = ctk.CTkFrame(creditos_interno, fg_color="transparent")
-        mensaje_frame.pack(pady=(5, 15))
+        mensaje_frame.pack(pady=(3, 10))
 
         # Primera parte del mensaje
         parte1 = ctk.CTkLabel(
-            mensaje_frame, 
+            mensaje_frame,
             text="Hecho con ",
-            font=ctk.CTkFont(size=12),
-            text_color="#99CCFF"
+            font=ctk.CTkFont(size=13),
+            text_color="#CCCCCC"
         )
         parte1.pack(side="left")
 
         # Corazón en rojo
         corazon = ctk.CTkLabel(
-            mensaje_frame, 
+            mensaje_frame,
             text="♥",
-            font=ctk.CTkFont(size=12),
-            text_color="#FF0000"  # Rojo
+            font=ctk.CTkFont(size=13),
+            text_color="#FF0000"
         )
         corazon.pack(side="left")
 
-        # Resto del mensaje
+        # Segunda parte del mensaje
         parte2 = ctk.CTkLabel(
-            mensaje_frame, 
+            mensaje_frame,
             text=" por la productividad laboral y el cuidado del tiempo",
-            font=ctk.CTkFont(size=12),
-            text_color="#99CCFF"
+            font=ctk.CTkFont(size=13),
+            text_color="#CCCCCC"
         )
         parte2.pack(side="left")
-    
-    def agregar_detalle(self, texto):
-        """Agrega texto al área de detalles"""
-        self.detalles_text.configure(state="normal")
-        self.detalles_text.insert("end", texto + "\n")
-        self.detalles_text.see("end")
-        self.detalles_text.configure(state="disabled")
-        self.ventana.update()
-    
+        
+        return creditos_interno
+
+    def descargar_plantilla(self):
+        try:
+            # Crear un nuevo libro de Excel
+            wb = Workbook()
+            ws = wb.active
+            
+            # Configurar encabezados
+            ws['A1'] = 'ID'
+            ws['B1'] = 'NOMBRES'
+            ws['C1'] = 'APELLIDOS'
+            
+            # Pedir al usuario donde guardar la plantilla
+            ruta_guardado = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx")],
+                title="Guardar plantilla como",
+                initialfile="Plantilla Nombres Carpetas"
+            )
+            
+            if ruta_guardado:
+                wb.save(ruta_guardado)
+                messagebox.showinfo("Éxito", "Plantilla descargada correctamente")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al crear la plantilla: {str(e)}")
+
+    def cargar_plantilla(self):
+        try:
+            # Pedir al usuario la plantilla Excel
+            ruta_excel = filedialog.askopenfilename(
+                filetypes=[("Excel files", "*.xlsx")],
+                title="Seleccionar plantilla Excel"
+            )
+            
+            if not ruta_excel:
+                return
+                
+            # Pedir al usuario el directorio donde crear las carpetas
+            directorio_destino = filedialog.askdirectory(
+                title="Seleccionar directorio para crear carpetas"
+            )
+            
+            if not directorio_destino:
+                return
+            
+            # Leer el Excel
+            df = pd.read_excel(ruta_excel)
+            
+            # Verificar columnas requeridas
+            columnas_requeridas = ['ID', 'NOMBRES', 'APELLIDOS']
+            if not all(col in df.columns for col in columnas_requeridas):
+                messagebox.showerror("Error", "La plantilla no tiene el formato correcto")
+                return
+            
+            # Crear carpetas
+            carpetas_creadas = 0
+            self.detalles_carpetas_text.configure(state="normal")
+            self.detalles_carpetas_text.delete("1.0", "end")
+            
+            for _, row in df.iterrows():
+                try:
+                    nombre_carpeta = f"{row['ID']} - {row['NOMBRES']} {row['APELLIDOS']}"
+                    ruta_carpeta = os.path.join(directorio_destino, nombre_carpeta)
+                    
+                    if not os.path.exists(ruta_carpeta):
+                        os.makedirs(ruta_carpeta)
+                        carpetas_creadas += 1
+                        self.detalles_carpetas_text.insert("end", f"✓ Creada: {nombre_carpeta}\n")
+                    else:
+                        self.detalles_carpetas_text.insert("end", f"⚠ Ya existe: {nombre_carpeta}\n")
+                except Exception as e:
+                    self.detalles_carpetas_text.insert("end", f"✗ Error al crear {nombre_carpeta}: {str(e)}\n")
+            
+            self.detalles_carpetas_text.configure(state="disabled")
+            self.estado_carpetas_label.configure(text=f"Estado: {carpetas_creadas} carpetas creadas")
+            
+            messagebox.showinfo("Completado", f"Se han creado {carpetas_creadas} carpetas")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al procesar la plantilla: {str(e)}")
+
     def seleccionar_carpeta(self):
         if self.procesando:
             messagebox.showwarning("En proceso", "Por favor espera a que termine el proceso actual")
@@ -273,9 +416,16 @@ class ImagenAPdfApp:
         self.procesando = False
         self.btn_seleccionar.configure(state="normal")
         self.ventana.update()
+    
+    def agregar_detalle(self, texto):
+        """Agrega texto al área de detalles"""
+        self.detalles_text.configure(state="normal")
+        self.detalles_text.insert("end", texto + "\n")
+        self.detalles_text.see("end")
+        self.detalles_text.configure(state="disabled")
+        self.ventana.update()
 
-    def iniciar(self):
-        self.ventana.mainloop()
+
 
 if __name__ == "__main__":
     app = ImagenAPdfApp()

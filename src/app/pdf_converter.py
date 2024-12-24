@@ -6,23 +6,66 @@ from datetime import datetime
 import tempfile
 import shutil
 import multiprocessing
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ..utils.helpers import agregar_detalle, actualizar_progreso
 
 class PDFConverter:
+    # Extensiones de imagen soportadas
+    EXTENSIONES_SOPORTADAS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp', '.gif', '.heic', '.heif'}
+    
     def __init__(self):
         self.procesando = False
         self.directorio_salida = None
         self.cancelar = False
         # Usar el número de CPUs disponibles o un máximo de 4
         self.max_workers = min(multiprocessing.cpu_count(), 4)
+        
+    def es_imagen_valida(self, ruta):
+        """Verifica si un archivo es una imagen válida basado en su extensión"""
+        return Path(ruta).suffix.lower() in self.EXTENSIONES_SOPORTADAS
+    
+    def encontrar_imagenes(self, directorio, patron="*"):
+        """
+        Encuentra todas las imágenes en el directorio y subdirectorios usando pathlib.
+        
+        Args:
+            directorio (str): Ruta al directorio a buscar
+            patron (str): Patrón para filtrar archivos (por defecto "*")
+            
+        Returns:
+            list: Lista de rutas de imágenes encontradas
+        """
+        ruta = Path(directorio)
+        imagenes = set()  # Usar set para evitar duplicados
+        
+        # Buscar todos los archivos recursivamente
+        for archivo in ruta.rglob("*"):
+            if archivo.is_file() and archivo.suffix.lower() in self.EXTENSIONES_SOPORTADAS:
+                imagenes.add(archivo)
+        
+        # Convertir a lista y ordenar
+        imagenes = sorted(imagenes)
+        
+        # Filtrar por patrón personalizado si es necesario
+        if patron and patron != "*":
+            from fnmatch import fnmatch
+            imagenes = [
+                img for img in imagenes 
+                if fnmatch(img.name.lower(), patron.lower())
+            ]
+        
+        return imagenes
     
     def convertir_imagen(self, ruta_imagen, directorio_destino):
         """Convierte una imagen a PDF"""
         try:
-            nombre_archivo = os.path.basename(ruta_imagen)
-            nombre_base = os.path.splitext(nombre_archivo)[0]
-            ruta_pdf = os.path.join(directorio_destino, f"{nombre_base}.pdf")
+            nombre_archivo = Path(ruta_imagen).name
+            nombre_base = Path(ruta_imagen).stem
+            ruta_pdf = Path(directorio_destino) / f"{nombre_base}.pdf"
+            
+            # Crear directorios intermedios si no existen
+            ruta_pdf.parent.mkdir(parents=True, exist_ok=True)
             
             # Abrir y convertir imagen
             with Image.open(ruta_imagen) as img:
@@ -37,12 +80,12 @@ class PDFConverter:
                     img = img.convert('RGB')
                 
                 # Guardar como PDF con compresión optimizada
-                img.save(ruta_pdf, 'PDF', resolution=100.0, optimize=True)
+                img.save(str(ruta_pdf), 'PDF', resolution=100.0, optimize=True)
             return True, nombre_archivo, None
         except Exception as e:
             return False, nombre_archivo, str(e)
     
-    def procesar_carpeta(self, directorio, modo_comprimido, callbacks):
+    def procesar_carpeta(self, directorio, modo_comprimido, callbacks, patron="*"):
         """Procesa todas las imágenes en la carpeta usando un thread pool"""
         temp_dir = None
         try:
@@ -54,12 +97,8 @@ class PDFConverter:
             if modo_comprimido:
                 temp_dir = tempfile.mkdtemp()
             
-            # Encontrar todas las imágenes
-            imagenes = []
-            for ruta_actual, _, archivos in os.walk(directorio):
-                for archivo in archivos:
-                    if archivo.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff')):
-                        imagenes.append(os.path.join(ruta_actual, archivo))
+            # Encontrar todas las imágenes usando pathlib
+            imagenes = self.encontrar_imagenes(directorio, patron)
             
             if not imagenes:
                 callbacks.on_no_images()
@@ -77,7 +116,7 @@ class PDFConverter:
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 # Crear futuras para cada imagen
                 futuros = {
-                    executor.submit(self.convertir_imagen, img, directorio_destino): img 
+                    executor.submit(self.convertir_imagen, str(img), directorio_destino): img 
                     for img in imagenes
                 }
                 
@@ -102,7 +141,7 @@ class PDFConverter:
                         
                     except Exception as e:
                         errores += 1
-                        nombre = os.path.basename(ruta_imagen)
+                        nombre = Path(ruta_imagen).name
                         callbacks.on_file_error(nombre, str(e))
             
             # Si se canceló, limpiar y salir
@@ -114,16 +153,15 @@ class PDFConverter:
             # Crear ZIP si es necesario
             if modo_comprimido and temp_dir:
                 callbacks.on_creating_zip()
-                zip_path = self.directorio_salida or os.path.join(directorio, f"PDFs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip")
+                zip_path = self.directorio_salida or Path(directorio) / f"PDFs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
                 
-                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    for root, _, files in os.walk(temp_dir):
-                        for file in files:
-                            file_path = os.path.join(root, file)
-                            arcname = os.path.relpath(file_path, temp_dir)
-                            zipf.write(file_path, arcname)
+                with zipfile.ZipFile(str(zip_path), 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    temp_path = Path(temp_dir)
+                    for pdf in temp_path.rglob('*.pdf'):
+                        arcname = pdf.relative_to(temp_path)
+                        zipf.write(pdf, arcname)
                 
-                callbacks.on_zip_created(zip_path)
+                callbacks.on_zip_created(str(zip_path))
                 
                 # Limpiar directorio temporal
                 shutil.rmtree(temp_dir)

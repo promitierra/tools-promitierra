@@ -232,3 +232,82 @@ class TestPDFConverter(unittest.TestCase):
                 print(f"Error inesperado en {nombre}: {error}")
         self.assertEqual(len(callbacks.errors), 0, 
                         "Se encontraron errores en la conversión")
+    
+    def test_filtrado_patron(self):
+        """Prueba el filtrado por patrón personalizado"""
+        # Crear imágenes con diferentes nombres
+        patrones = {
+            'foto_1.jpg': 'RGB',
+            'foto_2.png': 'RGB',
+            'imagen_1.jpg': 'RGB',
+            'imagen_2.png': 'RGB',
+            'test.jpg': 'RGB'
+        }
+        
+        # Crear las imágenes
+        test_dir = os.path.join(self.temp_dir, 'patron_test')
+        os.makedirs(test_dir)
+        
+        for nombre, modo in patrones.items():
+            img = Image.new(modo, (100, 100), color='red')
+            img.save(os.path.join(test_dir, nombre))
+        
+        class PatronCallbacks:
+            def __init__(self):
+                self.converted = []
+            def on_start(self): pass
+            def on_images_found(self, total): self.total = total
+            def on_file_converted(self, name): self.converted.append(name)
+            def on_file_error(self, name, error): pass
+            def on_complete(self, *args): pass
+            def on_progress(self, *args): pass
+            def on_processing_file(self, *args): pass
+            def on_finish(self): pass
+        
+        # Probar diferentes patrones
+        pruebas = [
+            ('foto_*.jpg', 1),    # Debe encontrar foto_1.jpg
+            ('*.png', 2),         # Debe encontrar foto_2.png e imagen_2.png
+            ('imagen_*.*', 2),    # Debe encontrar imagen_1.jpg e imagen_2.png
+            ('test.*', 1),        # Debe encontrar test.jpg
+            ('*.jpg', 3)          # Debe encontrar todos los .jpg
+        ]
+        
+        for patron, esperados in pruebas:
+            callbacks = PatronCallbacks()
+            self.converter.procesar_carpeta(test_dir, False, callbacks, patron)
+            self.assertEqual(
+                len(callbacks.converted), 
+                esperados, 
+                f"Patrón '{patron}' encontró {len(callbacks.converted)} archivos, esperaba {esperados}"
+            )
+    
+    def test_extension_case(self):
+        """Prueba que las extensiones son case-insensitive"""
+        # Crear imágenes con extensiones en diferentes casos
+        extensiones = ['.jpg', '.PNG']  # Solo dos extensiones diferentes
+        test_dir = os.path.join(self.temp_dir, 'extension_test')
+        os.makedirs(test_dir)
+        
+        # Crear dos archivos con nombres diferentes
+        img = Image.new('RGB', (100, 100), color='red')
+        img.save(os.path.join(test_dir, f'test1{extensiones[0]}'))  # test1.jpg
+        img.save(os.path.join(test_dir, f'test2{extensiones[1]}'))  # test2.PNG
+        
+        class ExtCallbacks:
+            def __init__(self):
+                self.converted = []
+            def on_start(self): pass
+            def on_images_found(self, total): self.total = total
+            def on_file_converted(self, name): self.converted.append(name)
+            def on_file_error(self, name, error): pass
+            def on_complete(self, *args): pass
+            def on_progress(self, *args): pass
+            def on_processing_file(self, *args): pass
+            def on_finish(self): pass
+        
+        callbacks = ExtCallbacks()
+        self.converter.procesar_carpeta(test_dir, False, callbacks)
+        
+        # Debería encontrar las dos imágenes independientemente del caso
+        self.assertEqual(len(callbacks.converted), len(extensiones))

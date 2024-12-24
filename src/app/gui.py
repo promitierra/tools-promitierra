@@ -23,6 +23,7 @@ class ImagenAPdfGUI:
         self.procesando = False
         self.modo_comprimido = ctk.BooleanVar(value=False)
         self.directorio_salida = None
+        self.patron_filtro = ctk.StringVar(value="*")
         
         # Inicializar componentes
         self.pdf_converter = PDFConverter()
@@ -104,6 +105,15 @@ class ImagenAPdfGUI:
             variable=self.modo_comprimido
         )
         self.check_comprimir.pack(side="left", padx=10)
+
+        # Entrada para patrón de filtro
+        ctk.CTkLabel(frame_superior, text="Filtro:").pack(side="left", padx=5)
+        filtro_entry = ctk.CTkEntry(
+            frame_superior, 
+            textvariable=self.patron_filtro,
+            width=150
+        )
+        filtro_entry.pack(side="left", padx=5)
 
         # Botón para seleccionar carpeta
         self.btn_seleccionar = ctk.CTkButton(
@@ -339,7 +349,7 @@ class ImagenAPdfGUI:
         # Iniciar conversión en un hilo separado
         threading.Thread(
             target=self.pdf_converter.procesar_carpeta,
-            args=(directorio, self.modo_comprimido.get(), callbacks)
+            args=(directorio, self.modo_comprimido.get(), callbacks, self.patron_filtro.get())
         ).start()
 
     def iniciar(self):
