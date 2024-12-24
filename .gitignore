@@ -1,29 +1,36 @@
-# Byte-compiled / optimized / DLL files
+# Directorios de construcción y cache
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Distribution / packaging
-dist/
 build/
+dist/
+*.egg-info/
+
+# Archivos de PyInstaller
+*.manifest
 *.spec
 
-# Virtual environments
+# Directorios de pruebas
+tests/output/*
+!tests/output/.gitkeep
+tests/data/expected/*
+!tests/data/expected/.gitkeep
+
+# Entornos virtuales
 venv/
 env/
 .env/
 
-# IDE specific files
+# IDEs y editores
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# Executable files
-*.exe
-
-# Logs and databases
+# Archivos temporales
+*.tmp
+*.bak
 *.log
-*.sqlite3
 
-# OS generated files
+# Archivos de sistema
 .DS_Store
 Thumbs.db

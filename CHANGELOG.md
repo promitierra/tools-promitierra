@@ -77,3 +77,36 @@
 - Interfaz gráfica básica
 - Soporte para formatos principales de imagen
 - Conversión básica a PDF
+
+## [2.0.0] - 2024-12-24
+
+### Añadido
+- Nueva estructura modular del proyecto
+- Separación clara entre GUI y lógica de negocio
+- Sistema de construcción mejorado
+- Soporte para cancelación de operaciones
+- Barra de progreso durante la conversión
+- Mejor manejo de errores y excepciones
+
+### Cambiado
+- Refactorización completa del código base
+- Mejora en el manejo de recursos
+- Actualización de dependencias a últimas versiones
+- Documentación mejorada
+- Interfaz gráfica modernizada
+
+### Corregido
+- Problemas con caracteres especiales en nombres
+- Manejo de memoria en imágenes grandes
+- Problemas de concurrencia en conversión
+- Inconsistencias en nombres de archivos
+
+## [1.0.0] - 2024-12-01
+
+### Añadido
+- Primera versión estable
+- Conversión básica de imágenes a PDF
+- Soporte para múltiples formatos
+- Interfaz gráfica simple
+- Normalización de nombres
+- Creación de carpetas desde Excel

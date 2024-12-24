@@ -1,118 +1,127 @@
-# ImagenToPDF
+# Herramientas ProMITIERRA
 
-Aplicación para convertir imágenes a PDF de forma rápida y eficiente.
+Aplicación de escritorio para convertir imágenes a PDF con funcionalidades avanzadas.S
 
 ## Características
 
-- Conversión rápida de imágenes a PDF usando procesamiento paralelo
-- Soporte para múltiples formatos de imagen:
-  - PNG, JPG, JPEG, BMP, TIFF, WEBP, GIF, HEIC, HEIF
-  - Manejo case-insensitive de extensiones (*.jpg, *.JPG, etc.)
-- Filtrado de imágenes por patrones personalizados (ej: `foto_*.jpg`, `*.png`)
-- Interfaz gráfica moderna e intuitiva
-- Opción para generar archivo ZIP con los PDFs
-- Manejo eficiente de memoria para imágenes grandes
-- Soporte para cancelación de operaciones
 - Conversión de imágenes a PDF
-- Organización automática de archivos por ID y nombre
-- Normalización de texto para nombres de carpetas:
-  - Formato: `ID - NOMBRES APELLIDOS`
-  - Manejo de espacios y mayúsculas automático
-  - Limpieza de caracteres especiales en IDs
-  - Soporte para nombres sin ID (se agrega "- " automáticamente)
+- Soporte para múltiples formatos (JPG, PNG, GIF, BMP, TIFF)
+- Interfaz gráfica moderna y amigable
+- Creación de carpetas desde plantilla Excel
+- Normalización de nombres
+- Barra de progreso y cancelación
+- Compresión configurable
 
-## Formato de Nombres
+## Estructura del Proyecto
 
-La aplicación normaliza los nombres de las siguientes formas:
-
-1. Con ID:
-   - Entrada: `"123-luis FERNando"` → Salida: `"123 - LUIS FERNANDO"`
-   - Entrada: `"A-12 - Maria Clara"` → Salida: `"A12 - MARIA CLARA"`
-
-2. Sin ID:
-   - Entrada: `"Luis Fernando"` → Salida: `"- LUIS FERNANDO"`
-   - Entrada: `"Maria Clara"` → Salida: `"- MARIA CLARA"`
-
-3. Casos especiales:
-   - IDs con caracteres especiales se limpian: `"001.1"` → `"0011"`
-   - Espacios múltiples se normalizan
-   - Todo se convierte a mayúsculas
+```
+├── src/                    # Código fuente
+│   ├── core/              # Lógica principal
+│   │   ├── image_processor.py
+│   │   ├── pdf_converter.py
+│   │   └── text_normalizer.py
+│   ├── gui/               # Interfaz gráfica
+│   │   ├── main_window.py
+│   │   └── progress_dialog.py
+│   └── main.py            # Punto de entrada
+├── tests/                 # Pruebas
+│   ├── test_cases/       # Casos de prueba
+│   └── data/             # Datos de prueba
+├── build_tools/          # Herramientas de construcción
+│   ├── scripts/         # Scripts de construcción
+│   └── resources/       # Recursos (iconos, etc.)
+├── docs/                 # Documentación
+├── requirements.txt      # Dependencias
+└── README.md            # Este archivo
+```
 
 ## Requisitos
 
 - Python 3.8 o superior
-- Pillow >= 10.3.0 (Importante: versión mínima por seguridad)
-- CustomTkinter >= 5.2.2
-- Threading
-
-## Seguridad
-
-Este proyecto se mantiene actualizado con las últimas correcciones de seguridad. La versión mínima de Pillow (10.3.0) es requerida para prevenir una vulnerabilidad de ejecución de código arbitrario en PIL.ImageMath.eval.
+- Dependencias listadas en `requirements.txt`
 
 ## Instalación
 
-1. Clona el repositorio:
+1. Clonar el repositorio:
+
 ```bash
-git clone https://github.com/tuusuario/imagenTopdf.exe.git
+git clone https://github.com/tu-usuario/imagenTopdf.exe.git
+cd imagenTopdf.exe
 ```
 
-2. Instala las dependencias:
+2. Crear y activar entorno virtual:
+
+```bash
+python -m venv venv
+.\venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+```
+
+3. Instalar dependencias:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Uso
 
-1. Ejecuta la aplicación:
+1. Ejecutar la aplicación:
+
 ```bash
-python src/app/main.py
+python src/main.py
 ```
 
-2. Usa la interfaz gráfica para:
+2. Usar la interfaz gráfica para:
    - Seleccionar la carpeta con imágenes
-   - Aplicar filtros por patrón (opcional)
-   - Elegir si deseas generar un ZIP
+   - Elegir el archivo PDF de salida
+   - Configurar opciones (opcional)
    - Iniciar la conversión
-
-### Filtros de Búsqueda
-
-Puedes usar patrones para filtrar las imágenes que deseas convertir:
-- `*.jpg` - Todas las imágenes JPG
-- `foto_*.png` - Imágenes PNG que empiecen con "foto_"
-- `IMG_20*.jpg` - Fotos JPG que empiecen con "IMG_20"
 
 ## Desarrollo
 
-### Estructura del Proyecto
-```
-imagenTopdf.exe/
-├── src/
-│   └── app/
-│       ├── main.py
-│       ├── gui.py
-│       └── pdf_converter.py
-├── tests/
-│   └── test_pdf_converter.py
-├── requirements.txt
-├── README.md
-└── ROADMAP.md
-```
-
 ### Pruebas
 
-Ejecuta las pruebas unitarias:
+Ejecutar pruebas:
+
 ```bash
-python -m unittest tests/test_pdf_converter.py -v
+pytest tests/
+```
+
+Cobertura de código:
+
+```bash
+coverage run -m pytest tests/
+coverage report
+```
+
+### Linting y Formateo
+
+Análisis de código:
+
+```bash
+pylint src/ tests/
+```
+
+Formateo de código:
+
+```bash
+black src/ tests/
+```
+
+### Generar Ejecutable
+
+```bash
+python build_tools/scripts/build_exe.py
 ```
 
 ## Contribuir
 
-1. Haz un Fork del proyecto
-2. Crea una rama para tu característica (`git checkout -b feature/AmazingFeature`)
-3. Haz commit de tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+1. Fork el proyecto
+2. Crear rama (`git checkout -b feature/nueva-caracteristica`)
+3. Commit cambios (`git commit -am 'Agrega nueva característica'`)
+4. Push a la rama (`git push origin feature/nueva-caracteristica`)
+5. Crear Pull Request
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
