@@ -1,45 +1,37 @@
-# Registro de Cambios
+* Registro de Cambios
 
-## [1.2.1] - 2024-12-24
-
-### Seguridad
-- Actualizada la dependencia de Pillow a >=10.3.0 para corregir una vulnerabilidad de seguridad en `PIL.ImageMath.eval`
-- Mejorada la gestión de dependencias con versiones específicas
-
-### Cambios
-- Agregadas dependencias de desarrollo (pytest, coverage)
-- Actualizada la documentación de requisitos
-- Mejorada la estructura del archivo requirements.txt
-
-## [1.2.0] - 2024-12-23
+## [0.2.2] - 2024-12-24
 
 ### Agregado
-- Implementado soporte para patrones personalizados en la búsqueda de imágenes
-- Agregado manejo case-insensitive para extensiones de archivo
-- Nuevos formatos de imagen soportados: HEIC, HEIF
-- Tooltips informativos en la interfaz
+- Implementada preservación de la estructura de directorios
+- Los PDFs ahora se crean en la misma ubicación que las imágenes originales
+- Mejorado el soporte para archivos ZIP:
+  - Mantiene la estructura de directorios dentro del ZIP
+  - Nombres de archivo con fecha y hora para evitar sobrescrituras
 
-### Optimizado
-- Mejorado el rendimiento de búsqueda de archivos
-- Implementada búsqueda case-insensitive eficiente
-- Optimizado el manejo de memoria
+### Mejorado
+- Simplificada la interfaz de usuario
+- Mejorada la retroalimentación visual del proceso
+- Actualizada la documentación con los nuevos cambios
 
 ### Corregido
-- Solucionado problema con duplicados en la búsqueda de archivos
-- Mejorado el manejo de errores en la conversión
+- Solucionado problema con la creación de directorios anidados
+- Corregido el manejo de rutas relativas en el ZIP
+- Mejorado el manejo de errores en callbacks
 
-## [1.1.0] - 2024-12-22
+## [0.2.1] - 2024-12-23
 
 ### Agregado
-- Implementado procesamiento paralelo con ThreadPool
-- Agregada funcionalidad de cancelación de operaciones
-- Mejorado el manejo de memoria para imágenes grandes
+- Implementado soporte para procesamiento paralelo
+- Agregada opción para generar archivo ZIP
+- Mejorado manejo de memoria para imágenes grandes
 
-### Optimizado
-- Migración a pathlib para manejo de rutas
-- Mejorada la eficiencia en la búsqueda de archivos
+### Mejorado
+- Optimizado el rendimiento de conversión
+- Agregada barra de progreso y mensajes de estado
+- Implementado manejo de errores robusto
 
-## [1.0.0] - 2024-12-21
+## [0.2.0] - 2024-12-21
 
 ### Inicial
 - Lanzamiento inicial de la aplicación

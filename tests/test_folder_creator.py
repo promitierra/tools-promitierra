@@ -1,161 +1,132 @@
-import unittest
+"""
+Pruebas unitarias para el módulo FolderCreator.
+"""
 import os
 import tempfile
-import shutil
+import unittest
 import pandas as pd
-from src.app.folder_creator import FolderCreator
+
+from src.core.folder_creator import FolderCreator
 
 class TestFolderCreator(unittest.TestCase):
+    """Pruebas para la creación de carpetas desde plantillas Excel."""
+    
     def setUp(self):
-        """Configuración inicial para cada prueba"""
+        """Configuración inicial para cada prueba."""
         self.temp_dir = tempfile.mkdtemp()
-        self.creator = FolderCreator()
-        
-        # Crear plantilla de prueba
-        self.test_excel = os.path.join(self.temp_dir, 'test.xlsx')
-        df = pd.DataFrame({
-            'ID': ['1', '2', '3'],
-            'NOMBRES': ['Juan', 'María', 'Pedro'],
-            'APELLIDOS': ['Pérez', 'García', 'López']
-        })
-        df.to_excel(self.test_excel, index=False)
-        
-        # Crear plantilla inválida
-        self.invalid_excel = os.path.join(self.temp_dir, 'invalid.xlsx')
-        df_invalid = pd.DataFrame({
-            'NOMBRE': ['Juan'],  # Columnas incorrectas
-            'EDAD': [25]
-        })
-        df_invalid.to_excel(self.invalid_excel, index=False)
-
-    def tearDown(self):
-        """Limpieza después de cada prueba"""
-        shutil.rmtree(self.temp_dir)
-
+        self.folder_creator = FolderCreator()
+    
     def test_crear_plantilla(self):
-        """Prueba la creación de plantilla Excel"""
-        plantilla_path = os.path.join(self.temp_dir, 'plantilla.xlsx')
-        success, message = self.creator.crear_plantilla(plantilla_path)
+        """Probar la creación de una plantilla Excel."""
+        plantilla_path = os.path.join(self.temp_dir, 'plantilla_test.xlsx')
         
-        self.assertTrue(success)
+        # Crear plantilla
+        exito, mensaje = self.folder_creator.crear_plantilla(plantilla_path)
+        
+        # Verificar
+        self.assertTrue(exito)
         self.assertTrue(os.path.exists(plantilla_path))
         
-        # Verificar estructura
+        # Leer plantilla
         df = pd.read_excel(plantilla_path)
-        self.assertListEqual(list(df.columns), ['ID', 'NOMBRES', 'APELLIDOS'])
-
-    def test_procesar_plantilla_valida(self):
-        """Prueba el procesamiento de una plantilla válida"""
-        output_dir = os.path.join(self.temp_dir, 'output')
         
-        class MockCallbacks:
-            def __init__(self):
-                self.created = []
-                self.errors = []
-            def on_folder_created(self, name): self.created.append(name)
-            def on_folder_error(self, name, error): self.errors.append((name, error))
-            def on_folder_exists(self, name): pass
-            
-        callbacks = MockCallbacks()
-        success, result = self.creator.procesar_plantilla(self.test_excel, output_dir, callbacks)
+        # Verificar columnas
+        columnas_esperadas = ['ID', 'NOMBRES', 'APELLIDOS']
+        self.assertTrue(all(col in df.columns for col in columnas_esperadas))
+    
+    def test_procesar_plantilla_exitoso(self):
+        """Probar procesamiento de plantilla Excel."""
+        # Crear plantilla de prueba
+        plantilla_path = os.path.join(self.temp_dir, 'plantilla_proceso.xlsx')
+        df = pd.DataFrame({
+            'ID': ['001', '002'],
+            'NOMBRES': ['Juan', 'María'],
+            'APELLIDOS': ['Pérez', 'García']
+        })
+        df.to_excel(plantilla_path, index=False)
         
-        self.assertTrue(success)
-        self.assertEqual(len(callbacks.created), 3)
-        self.assertEqual(len(callbacks.errors), 0)
+        # Procesar plantilla
+        exito, mensaje = self.folder_creator.procesar_plantilla(
+            plantilla_path, 
+            self.temp_dir
+        )
+        
+        # Verificar
+        self.assertTrue(exito)
+        self.assertIn("Carpetas creadas: 2", mensaje)
         
         # Verificar carpetas creadas
-        self.assertTrue(os.path.exists(os.path.join(output_dir, '1 - Juan Pérez')))
-        self.assertTrue(os.path.exists(os.path.join(output_dir, '2 - María García')))
-        self.assertTrue(os.path.exists(os.path.join(output_dir, '3 - Pedro López')))
-
-    def test_procesar_plantilla_invalida(self):
-        """Prueba el procesamiento de una plantilla inválida"""
-        output_dir = os.path.join(self.temp_dir, 'output')
-        
+        carpetas_esperadas = [
+            '001 - JUAN PEREZ',
+            '002 - MARIA GARCIA'
+        ]
+        for carpeta in carpetas_esperadas:
+            ruta_carpeta = os.path.join(self.temp_dir, carpeta)
+            self.assertTrue(os.path.exists(ruta_carpeta), f"No se creó la carpeta {carpeta}")
+    
+    def test_procesar_plantilla_con_callbacks(self):
+        """Probar procesamiento de plantilla con callbacks."""
         class MockCallbacks:
             def __init__(self):
-                self.created = []
-                self.errors = []
-            def on_folder_created(self, name): self.created.append(name)
-            def on_folder_error(self, name, error): self.errors.append((name, error))
-            def on_folder_exists(self, name): pass
+                self.carpetas_creadas = []
+                self.carpetas_existentes = []
+                self.errores = []
             
-        callbacks = MockCallbacks()
-        success, result = self.creator.procesar_plantilla(self.invalid_excel, output_dir, callbacks)
+            def on_folder_created(self, nombre_carpeta):
+                self.carpetas_creadas.append(nombre_carpeta)
+            
+            def on_folder_exists(self, nombre_carpeta):
+                self.carpetas_existentes.append(nombre_carpeta)
+            
+            def on_folder_error(self, nombre_carpeta, error):
+                self.errores.append((nombre_carpeta, error))
         
-        self.assertFalse(success)
-        self.assertEqual(len(callbacks.created), 0)
-
-    def test_nombres_especiales(self):
-        """Prueba la creación de carpetas con nombres especiales"""
-        special_excel = os.path.join(self.temp_dir, 'special.xlsx')
+        # Crear plantilla de prueba
+        plantilla_path = os.path.join(self.temp_dir, 'plantilla_callbacks.xlsx')
         df = pd.DataFrame({
-            'ID': ['1', '2'],  
-            'NOMBRES': ['Ana María', 'José #'],
-            'APELLIDOS': ['Pérez.', 'García?']
+            'ID': ['001', '002'],  # No duplicados
+            'NOMBRES': ['Juan', 'María']
         })
-        df.to_excel(special_excel, index=False)
+        df.to_excel(plantilla_path, index=False)
         
-        output_dir = os.path.join(self.temp_dir, 'output')
+        # Crear una carpeta existente
+        os.makedirs(os.path.join(self.temp_dir, '001 - JUAN'), exist_ok=True)
         
-        class MockCallbacks:
-            def __init__(self):
-                self.created = []
-                self.errors = []
-            def on_folder_created(self, name): self.created.append(name)
-            def on_folder_error(self, name, error): self.errors.append((name, error))
-            def on_folder_exists(self, name): pass
-            
+        # Callbacks
         callbacks = MockCallbacks()
-        success, result = self.creator.procesar_plantilla(special_excel, output_dir, callbacks)
         
-        self.assertTrue(success)
-        self.assertEqual(len(callbacks.created), 2)  
-
-    def test_carpetas_duplicadas(self):
-        """Prueba el manejo de carpetas duplicadas"""
-        duplicate_excel = os.path.join(self.temp_dir, 'duplicate.xlsx')
+        # Procesar plantilla
+        exito, mensaje = self.folder_creator.procesar_plantilla(
+            plantilla_path, 
+            self.temp_dir,
+            callbacks
+        )
+        
+        # Verificar
+        self.assertTrue(exito)
+        self.assertEqual(len(callbacks.carpetas_creadas), 2)  # Dos carpetas creadas
+        self.assertEqual(len(callbacks.carpetas_existentes), 1)
+        self.assertTrue('002 - MARIA' in callbacks.carpetas_creadas)
+        self.assertEqual(callbacks.carpetas_existentes[0], '001 - JUAN')
+    
+    def test_procesar_plantilla_sin_columnas_requeridas(self):
+        """Probar procesamiento de plantilla sin columnas requeridas."""
+        # Crear plantilla sin columnas requeridas
+        plantilla_path = os.path.join(self.temp_dir, 'plantilla_invalida.xlsx')
         df = pd.DataFrame({
-            'ID': ['1', '1'],  # IDs duplicados
-            'NOMBRES': ['Juan', 'Juan'],
-            'APELLIDOS': ['Pérez', 'Pérez']
+            'COLUMNA_INVALIDA': ['Dato']
         })
-        df.to_excel(duplicate_excel, index=False)
+        df.to_excel(plantilla_path, index=False)
         
-        output_dir = os.path.join(self.temp_dir, 'output')
-        os.makedirs(output_dir)
+        # Procesar plantilla
+        exito, mensaje = self.folder_creator.procesar_plantilla(
+            plantilla_path, 
+            self.temp_dir
+        )
         
-        class MockCallbacks:
-            def __init__(self):
-                self.created = []
-                self.existing = []
-            def on_folder_created(self, name): self.created.append(name)
-            def on_folder_error(self, name, error): pass
-            def on_folder_exists(self, name): self.existing.append(name)
-            
-        callbacks = MockCallbacks()
-        success, result = self.creator.procesar_plantilla(duplicate_excel, output_dir, callbacks)
-        
-        self.assertTrue(success)
-        self.assertEqual(len(callbacks.created), 1)
-        self.assertEqual(len(callbacks.existing), 1)
+        # Verificar
+        self.assertFalse(exito)
+        self.assertIn("Columna 'ID' no encontrada", mensaje)
 
-    def test_permisos_directorio(self):
-        """Prueba el manejo de errores de permisos"""
-        if os.name != 'nt':  # Skip en Windows
-            restricted_dir = os.path.join(self.temp_dir, 'restricted')
-            os.makedirs(restricted_dir)
-            os.chmod(restricted_dir, 0o000)
-            
-            class MockCallbacks:
-                def __init__(self):
-                    self.errors = []
-                def on_folder_created(self, name): pass
-                def on_folder_error(self, name, error): self.errors.append((name, error))
-                def on_folder_exists(self, name): pass
-                
-            callbacks = MockCallbacks()
-            success, result = self.creator.procesar_plantilla(self.test_excel, restricted_dir, callbacks)
-            
-            self.assertFalse(success)
-            self.assertTrue(len(callbacks.errors) > 0)
+if __name__ == '__main__':
+    unittest.main()

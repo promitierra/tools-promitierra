@@ -1,38 +1,41 @@
-# ImagenToPDF
+# Herramientas ProMITIERRA v0.2.1
 
-Aplicación para convertir imágenes a PDF de forma rápida y eficiente.
+Aplicación python autoejecutable con herramientas que ahorran tiempo en trabajo de oficina.
+
+- Herramienta que crea carpetas automaticamente, nombrándolas de acuerdo a los valores incluidos en plantilla de excel.
+- Herramienta para convertir todas las imágenes en varios formatos dentro de un directorio y sus subcarpetas a formato PDF de forma rápida y eficiente.
 
 ## Características
 
 - Conversión rápida de imágenes a PDF usando procesamiento paralelo
 - Soporte para múltiples formatos de imagen:
-  - PNG, JPG, JPEG, BMP, TIFF, WEBP, GIF, HEIC, HEIF
+  - PNG, JPG, JPEG, BMP, TIFF, WEBP, GIF
   - Manejo case-insensitive de extensiones (*.jpg, *.JPG, etc.)
-- Filtrado de imágenes por patrones personalizados (ej: `foto_*.jpg`, `*.png`)
 - Interfaz gráfica moderna e intuitiva
 - Opción para generar archivo ZIP con los PDFs
+- Preservación de la estructura de directorios:
+  - Mantiene la jerarquía de carpetas al convertir
+  - Estructura idéntica en el archivo ZIP
 - Manejo eficiente de memoria para imágenes grandes
 - Soporte para cancelación de operaciones
 
 ## Requisitos
 
 - Python 3.8 o superior
-- Pillow >= 10.3.0 (Importante: versión mínima por seguridad)
+- Pillow >= 10.3.0
 - CustomTkinter >= 5.2.2
 - Threading
-
-## Seguridad
-
-Este proyecto se mantiene actualizado con las últimas correcciones de seguridad. La versión mínima de Pillow (10.3.0) es requerida para prevenir una vulnerabilidad de ejecución de código arbitrario en PIL.ImageMath.eval.
 
 ## Instalación
 
 1. Clona el repositorio:
+
 ```bash
 git clone https://github.com/tuusuario/imagenTopdf.exe.git
 ```
 
 2. Instala las dependencias:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -40,55 +43,54 @@ pip install -r requirements.txt
 ## Uso
 
 1. Ejecuta la aplicación:
+
 ```bash
-python src/app/main.py
+python main.py
 ```
 
 2. Usa la interfaz gráfica para:
    - Seleccionar la carpeta con imágenes
-   - Aplicar filtros por patrón (opcional)
-   - Elegir si deseas generar un ZIP
+   - Elegir si deseas generar un archivo ZIP
    - Iniciar la conversión
 
-### Filtros de Búsqueda
+### Modo de Operación
 
-Puedes usar patrones para filtrar las imágenes que deseas convertir:
-- `*.jpg` - Todas las imágenes JPG
-- `foto_*.png` - Imágenes PNG que empiecen con "foto_"
-- `IMG_20*.jpg` - Fotos JPG que empiecen con "IMG_20"
+La aplicación ofrece dos modos de operación:
 
-## Desarrollo
+1. **Conversión Simple**:
 
-### Estructura del Proyecto
-```
-imagenTopdf.exe/
-├── src/
-│   └── app/
-│       ├── main.py
-│       ├── gui.py
-│       └── pdf_converter.py
-├── tests/
-│   └── test_pdf_converter.py
-├── requirements.txt
-├── README.md
-└── ROADMAP.md
-```
+   - Los PDFs se crean en las mismas ubicaciones que las imágenes originales
+   - Se mantiene la estructura exacta de directorios
+   - Ejemplo: si tienes `fotos/2023/enero/imagen.jpg`, se creará `fotos/2023/enero/imagen.pdf`
+2. **Modo Comprimido (ZIP)**:
 
-### Pruebas
+   - Genera un archivo ZIP con todos los PDFs
+   - Mantiene la estructura de directorios dentro del ZIP
+   - El archivo ZIP se crea en el directorio raíz seleccionado
+   - Nombre del ZIP incluye fecha y hora para evitar sobrescrituras
 
-Ejecuta las pruebas unitarias:
-```bash
-python -m unittest tests/test_pdf_converter.py -v
-```
+### Procesamiento de Imágenes
+
+- Las imágenes grandes se redimensionan automáticamente para optimizar memoria
+- Conversión a RGB automática para formatos especiales (RGBA, LA, etc.)
+- Procesamiento paralelo para mayor velocidad
+- Muestra progreso en tiempo real
+- Reporta errores individuales sin detener el proceso completo
 
 ## Contribuir
 
-1. Haz un Fork del proyecto
-2. Crea una rama para tu característica (`git checkout -b feature/AmazingFeature`)
-3. Haz commit de tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+Las contribuciones son bienvenidas. Por favor, asegúrate de:
+
+1. Seguir el estilo de código existente
+2. Agregar pruebas para nuevas funcionalidades
+3. Actualizar la documentación según sea necesario
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+Este proyecto está licenciado bajo MIT License - ver el archivo LICENSE para detalles.
+
+## Autor
+
+- Luis Fernando Moreno Montoya
+- GitHub: @mmlufer
+- Email: fernando.moreno@promitierra.org
