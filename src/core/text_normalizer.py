@@ -1,53 +1,42 @@
 """
-Text normalization module for consistent text formatting.
+Text normalization module.
 """
 import re
 import unicodedata
 
 class TextNormalizer:
-    """Class for text normalization operations."""
+    """Class for normalizing text."""
     
-    def __init__(self):
-        self._special_chars = {
-            '&': 'AND',
-            '@': ' ',
-            '_': ' ',
-            '-': ' ',
-            '.': ' ',
-            ',': ' ',
-            "'": ' ',
-            '"': ' ',
-        }
-        
     def normalize_text(self, text: str) -> str:
-        """
-        Normalize text by:
-        - Converting to uppercase
-        - Removing accents
-        - Replacing special characters
-        - Removing extra spaces
+        """Normalize text by removing accents and special characters.
         
         Args:
-            text (str): Text to normalize
+            text: Text to normalize
             
         Returns:
-            str: Normalized text
+            Normalized text
         """
-        if not text:
-            return ""
-            
-        # Convert to uppercase
+        # First, convert to uppercase
         text = text.upper()
         
         # Remove accents
         text = unicodedata.normalize('NFKD', text)
         text = text.encode('ASCII', 'ignore').decode('ASCII')
         
-        # Replace special characters
-        for char, replacement in self._special_chars.items():
-            text = text.replace(char, replacement)
-            
-        # Remove extra spaces
-        text = re.sub(r'\s+', ' ', text.strip())
+        # Normalize multiple spaces and trim
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        # Replace specific punctuation
+        text = text.replace(',', '')
+        text = text.replace('.', '_')
+        
+        # Replace other special characters with underscore
+        text = re.sub(r'[^A-Z0-9\s\-_]', '_', text)
+        
+        # Normalize multiple consecutive underscores or hyphens
+        text = re.sub(r'[_\-]+', '-', text)
+        
+        # Trim leading/trailing hyphens or underscores
+        text = text.strip('-_')
         
         return text

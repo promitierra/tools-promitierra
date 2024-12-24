@@ -1,104 +1,197 @@
 """
-Image processing module for handling various image formats and operations.
+Image processing module.
 """
-from typing import List, Optional, Tuple
-from pathlib import Path
 import os
+from typing import Callable, List
 from PIL import Image
+import zipfile
+import tempfile
+import shutil
 
 class ImageProcessor:
-    """Handles image processing operations."""
+    """Class for handling image processing operations."""
     
-    SUPPORTED_FORMATS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff'}
-    
-    @staticmethod
-    def is_valid_image(file_path: str) -> bool:
-        """Check if a file is a valid image."""
+    def __init__(self):
+        """Initialize the image processor."""
+        self._should_cancel = False
+        
+    def cancel_processing(self):
+        """Cancel current processing operation."""
+        self._should_cancel = True
+        
+    def batch_convert_to_pdf(
+        self,
+        input_dir: str,
+        output_file: str,
+        pattern: str = "*",
+        progress_callback: Callable[[int, int], None] = None,
+        compress: bool = False
+    ) -> None:
+        """Convert all images in a directory to PDF.
+        
+        Args:
+            input_dir: Input directory containing images
+            output_file: Output PDF or ZIP file path
+            pattern: Pattern to filter image files
+            progress_callback: Callback for progress updates
+            compress: Whether to compress output into ZIP
+        """
+        # Reset cancel flag
+        self._should_cancel = False
+        
         try:
-            with Image.open(file_path) as img:
-                img.verify()
-            return True
-        except Exception:
-            return False
-            
-    @staticmethod
-    def get_image_info(file_path: str) -> Tuple[int, int, str]:
-        """Get image dimensions and format."""
-        with Image.open(file_path) as img:
-            return img.size[0], img.size[1], img.format
-            
-    def process_image(self, 
-                     input_path: str, 
-                     output_path: Optional[str] = None,
-                     max_size: Optional[Tuple[int, int]] = None,
-                     quality: int = 85) -> str:
-        """
-        Process an image with optional resizing and quality adjustment.
-        
-        Args:
-            input_path: Path to input image
-            output_path: Optional path for output image
-            max_size: Optional maximum dimensions (width, height)
-            quality: JPEG quality (1-100)
-            
-        Returns:
-            Path to processed image
-        """
-        if not output_path:
-            output_path = input_path
-            
-        with Image.open(input_path) as img:
-            # Convert to RGB if necessary
-            if img.mode in ('RGBA', 'P'):
-                img = img.convert('RGB')
+            # Create temporary directory for processing
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Get list of image files
+                image_files = self._get_image_files(input_dir, pattern)
+                total_files = len(image_files)
                 
-            # Resize if needed
-            if max_size:
-                img.thumbnail(max_size, Image.Resampling.LANCZOS)
+                if not total_files:
+                    raise ValueError("No se encontraron imágenes en la carpeta")
                 
-            # Save with quality setting
-            img.save(output_path, 'JPEG', quality=quality, optimize=True)
-            
-        return output_path
-        
-    def process_directory(self,
-                         input_dir: str,
-                         output_dir: Optional[str] = None,
-                         max_size: Optional[Tuple[int, int]] = None,
-                         quality: int = 85) -> List[str]:
-        """
-        Process all images in a directory.
-        
-        Args:
-            input_dir: Input directory path
-            output_dir: Optional output directory path
-            max_size: Optional maximum dimensions
-            quality: JPEG quality
-            
-        Returns:
-            List of processed image paths
-        """
-        if not output_dir:
-            output_dir = input_dir
-            
-        # Ensure output directory exists
-        os.makedirs(output_dir, exist_ok=True)
-        
-        processed_files = []
-        
-        # Process each file
-        for file_path in Path(input_dir).glob('*'):
-            if file_path.suffix.lower() in self.SUPPORTED_FORMATS:
-                output_path = Path(output_dir) / file_path.name
-                try:
-                    processed_path = self.process_image(
-                        str(file_path),
-                        str(output_path),
-                        max_size,
-                        quality
-                    )
-                    processed_files.append(processed_path)
-                except Exception as e:
-                    print(f"Error processing {file_path}: {e}")
+                # Preserve original directory structure
+                root_dir_name = os.path.basename(input_dir)
+                
+                # Process each image
+                processed_files = []
+                for i, image_file in enumerate(image_files, 1):
+                    # Check for cancellation
+                    if self._should_cancel:
+                        raise InterruptedError("Operación cancelada")
                     
-        return processed_files
+                    # Preserve relative path
+                    relative_path = os.path.relpath(image_file, input_dir)
+                    relative_dir = os.path.dirname(relative_path)
+                    
+                    # Create corresponding directory in temp_dir
+                    pdf_subdir = os.path.join(temp_dir, root_dir_name, relative_dir)
+                    os.makedirs(pdf_subdir, exist_ok=True)
+                    
+                    # Convert image to PDF
+                    pdf_filename = f"{os.path.splitext(os.path.basename(image_file))[0]}.pdf"
+                    pdf_path = os.path.join(pdf_subdir, pdf_filename)
+                    
+                    self._convert_to_pdf(image_file, pdf_path)
+                    processed_files.append(pdf_path)
+                    
+                    # Update progress
+                    if progress_callback:
+                        progress_callback(i, total_files)
+                
+                # Create final output
+                if compress:
+                    # Suggest filename based on root directory
+                    suggested_filename = f"{root_dir_name}_PDFs.zip"
+                    
+                    # Modify output_file to use suggested filename if not specified
+                    if not output_file.lower().endswith('.zip'):
+                        output_file = os.path.join(
+                            os.path.dirname(output_file), 
+                            suggested_filename
+                        )
+                    
+                    # Create ZIP with all PDFs, preserving directory structure
+                    with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+                        for root, _, files in os.walk(os.path.join(temp_dir, root_dir_name)):
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                arcname = os.path.relpath(file_path, temp_dir)
+                                zf.write(file_path, arcname)
+                else:
+                    # Suggest filename based on root directory
+                    suggested_filename = f"{root_dir_name}.pdf"
+                    
+                    # Modify output_file to use suggested filename if not specified
+                    if not output_file.lower().endswith('.pdf'):
+                        output_file = os.path.join(
+                            os.path.dirname(output_file), 
+                            suggested_filename
+                        )
+                    
+                    # Merge all PDFs into one
+                    pdfs = [
+                        f for f in processed_files 
+                        if f.lower().endswith('.pdf')
+                    ]
+                    
+                    # If only one PDF, just copy it
+                    if len(pdfs) == 1:
+                        shutil.copy2(pdfs[0], output_file)
+                    elif len(pdfs) > 1:
+                        self._merge_pdfs(pdfs, output_file)
+                    
+        except Exception as e:
+            # Clean up any partial output
+            if os.path.exists(output_file):
+                os.remove(output_file)
+            raise e
+            
+    def _get_image_files(self, directory: str, pattern: str) -> List[str]:
+        """Get list of image files in directory.
+        
+        Args:
+            directory: Directory to search
+            pattern: Pattern to filter files
+            
+        Returns:
+            List of image file paths
+        """
+        image_files = []
+        
+        for root, _, files in os.walk(directory):
+            for file in files:
+                # Check if file matches pattern
+                if not self._matches_pattern(file, pattern):
+                    continue
+                    
+                # Check if file is an image
+                file_path = os.path.join(root, file)
+                try:
+                    with Image.open(file_path) as img:
+                        img.verify()
+                    image_files.append(file_path)
+                except:
+                    continue
+                    
+        return sorted(image_files)
+        
+    def _matches_pattern(self, filename: str, pattern: str) -> bool:
+        """Check if filename matches pattern.
+        
+        Args:
+            filename: Filename to check
+            pattern: Pattern to match against
+            
+        Returns:
+            True if filename matches pattern
+        """
+        from fnmatch import fnmatch
+        return fnmatch(filename.lower(), pattern.lower())
+        
+    def _convert_to_pdf(self, image_path: str, output_path: str) -> None:
+        """Convert single image to PDF.
+        
+        Args:
+            image_path: Path to input image
+            output_path: Path to output PDF
+        """
+        try:
+            with Image.open(image_path) as img:
+                # Convert to RGB if necessary
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                # Save as PDF
+                img.save(output_path, 'PDF', resolution=100.0)
+        except Exception as e:
+            raise ValueError(f"Error al convertir {image_path}: {str(e)}")
+            
+    def _merge_pdfs(self, pdf_files: List[str], output_file: str) -> None:
+        """Merge multiple PDFs into one.
+        
+        Args:
+            pdf_files: List of PDF files to merge
+            output_file: Output PDF file path
+        """
+        # For now, just copy the first PDF
+        # TODO: Implement proper PDF merging
+        shutil.copy2(pdf_files[0], output_file)

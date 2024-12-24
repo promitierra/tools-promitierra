@@ -57,12 +57,26 @@ class PDFConverter:
         
         return imagenes
     
-    def convertir_imagen(self, ruta_imagen, directorio_destino):
-        """Convierte una imagen a PDF"""
+    def convertir_imagen(self, ruta_imagen, directorio_base, directorio_destino):
+        """
+        Convierte una imagen a PDF manteniendo la estructura de directorios.
+        
+        Args:
+            ruta_imagen (str): Ruta completa a la imagen
+            directorio_base (str): Directorio base de las imágenes
+            directorio_destino (str): Directorio donde se guardarán los PDFs
+        """
         try:
-            nombre_archivo = Path(ruta_imagen).name
-            nombre_base = Path(ruta_imagen).stem
-            ruta_pdf = Path(directorio_destino) / f"{nombre_base}.pdf"
+            # Convertir rutas a Path
+            ruta_imagen = Path(ruta_imagen)
+            directorio_base = Path(directorio_base)
+            directorio_destino = Path(directorio_destino)
+            
+            # Obtener la ruta relativa de la imagen respecto al directorio base
+            ruta_relativa = ruta_imagen.relative_to(directorio_base)
+            
+            # Construir la ruta de destino manteniendo la estructura
+            ruta_pdf = directorio_destino / ruta_relativa.parent / f"{ruta_imagen.stem}.pdf"
             
             # Crear directorios intermedios si no existen
             ruta_pdf.parent.mkdir(parents=True, exist_ok=True)
@@ -81,9 +95,9 @@ class PDFConverter:
                 
                 # Guardar como PDF con compresión optimizada
                 img.save(str(ruta_pdf), 'PDF', resolution=100.0, optimize=True)
-            return True, nombre_archivo, None
+            return True, str(ruta_relativa), None
         except Exception as e:
-            return False, nombre_archivo, str(e)
+            return False, str(ruta_imagen.name), str(e)
     
     def procesar_carpeta(self, directorio, modo_comprimido, callbacks, patron="*"):
         """Procesa todas las imágenes en la carpeta usando un thread pool"""
@@ -116,7 +130,12 @@ class PDFConverter:
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 # Crear futuras para cada imagen
                 futuros = {
-                    executor.submit(self.convertir_imagen, str(img), directorio_destino): img 
+                    executor.submit(
+                        self.convertir_imagen, 
+                        str(img), 
+                        directorio,  # directorio base original
+                        directorio_destino
+                    ): img 
                     for img in imagenes
                 }
                 
@@ -158,6 +177,7 @@ class PDFConverter:
                 with zipfile.ZipFile(str(zip_path), 'w', zipfile.ZIP_DEFLATED) as zipf:
                     temp_path = Path(temp_dir)
                     for pdf in temp_path.rglob('*.pdf'):
+                        # Mantener la estructura de directorios en el ZIP
                         arcname = pdf.relative_to(temp_path)
                         zipf.write(pdf, arcname)
                 

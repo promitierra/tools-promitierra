@@ -1,63 +1,40 @@
-# Herramientas ProMITIERRA
+# Herramientas ProMITIERRA v0.2.1
 
-Aplicación de escritorio para convertir imágenes a PDF con funcionalidades avanzadas.S
+Aplicación python autoejecutable con herramientas que ahorran tiempo en trabajo de oficina.
+
+- Herramienta que crea carpetas automaticamente, nombrándolas de acuerdo a los valores incluidos en plantilla de excel.
+- Herramienta para convertir todas las imágenes en varios formatos dentro de un directorio y sus subcarpetas a formato PDF de forma rápida y eficiente.
 
 ## Características
 
-- Conversión de imágenes a PDF
-- Soporte para múltiples formatos (JPG, PNG, GIF, BMP, TIFF)
-- Interfaz gráfica moderna y amigable
-- Creación de carpetas desde plantilla Excel
-- Normalización de nombres
-- Barra de progreso y cancelación
-- Compresión configurable
-
-## Estructura del Proyecto
-
-```
-├── src/                    # Código fuente
-│   ├── core/              # Lógica principal
-│   │   ├── image_processor.py
-│   │   ├── pdf_converter.py
-│   │   └── text_normalizer.py
-│   ├── gui/               # Interfaz gráfica
-│   │   ├── main_window.py
-│   │   └── progress_dialog.py
-│   └── main.py            # Punto de entrada
-├── tests/                 # Pruebas
-│   ├── test_cases/       # Casos de prueba
-│   └── data/             # Datos de prueba
-├── build_tools/          # Herramientas de construcción
-│   ├── scripts/         # Scripts de construcción
-│   └── resources/       # Recursos (iconos, etc.)
-├── docs/                 # Documentación
-├── requirements.txt      # Dependencias
-└── README.md            # Este archivo
-```
+- Conversión rápida de imágenes a PDF usando procesamiento paralelo
+- Soporte para múltiples formatos de imagen:
+  - PNG, JPG, JPEG, BMP, TIFF, WEBP, GIF
+  - Manejo case-insensitive de extensiones (*.jpg, *.JPG, etc.)
+- Interfaz gráfica moderna e intuitiva
+- Opción para generar archivo ZIP con los PDFs
+- Preservación de la estructura de directorios:
+  - Mantiene la jerarquía de carpetas al convertir
+  - Estructura idéntica en el archivo ZIP
+- Manejo eficiente de memoria para imágenes grandes
+- Soporte para cancelación de operaciones
 
 ## Requisitos
 
 - Python 3.8 o superior
-- Dependencias listadas en `requirements.txt`
+- Pillow >= 10.3.0
+- CustomTkinter >= 5.2.2
+- Threading
 
 ## Instalación
 
-1. Clonar el repositorio:
+1. Clona el repositorio:
 
 ```bash
-git clone https://github.com/tu-usuario/imagenTopdf.exe.git
-cd imagenTopdf.exe
+git clone https://github.com/tuusuario/imagenTopdf.exe.git
 ```
 
-2. Crear y activar entorno virtual:
-
-```bash
-python -m venv venv
-.\venv\Scripts\activate  # Windows
-source venv/bin/activate  # Linux/Mac
-```
-
-3. Instalar dependencias:
+2. Instala las dependencias:
 
 ```bash
 pip install -r requirements.txt
@@ -65,63 +42,55 @@ pip install -r requirements.txt
 
 ## Uso
 
-1. Ejecutar la aplicación:
+1. Ejecuta la aplicación:
 
 ```bash
-python src/main.py
+python main.py
 ```
 
-2. Usar la interfaz gráfica para:
+2. Usa la interfaz gráfica para:
    - Seleccionar la carpeta con imágenes
-   - Elegir el archivo PDF de salida
-   - Configurar opciones (opcional)
+   - Elegir si deseas generar un archivo ZIP
    - Iniciar la conversión
 
-## Desarrollo
+### Modo de Operación
 
-### Pruebas
+La aplicación ofrece dos modos de operación:
 
-Ejecutar pruebas:
+1. **Conversión Simple**:
 
-```bash
-pytest tests/
-```
+   - Los PDFs se crean en las mismas ubicaciones que las imágenes originales
+   - Se mantiene la estructura exacta de directorios
+   - Ejemplo: si tienes `fotos/2023/enero/imagen.jpg`, se creará `fotos/2023/enero/imagen.pdf`
+2. **Modo Comprimido (ZIP)**:
 
-Cobertura de código:
+   - Genera un archivo ZIP con todos los PDFs
+   - Mantiene la estructura de directorios dentro del ZIP
+   - El archivo ZIP se crea en el directorio raíz seleccionado
+   - Nombre del ZIP incluye fecha y hora para evitar sobrescrituras
 
-```bash
-coverage run -m pytest tests/
-coverage report
-```
+### Procesamiento de Imágenes
 
-### Linting y Formateo
-
-Análisis de código:
-
-```bash
-pylint src/ tests/
-```
-
-Formateo de código:
-
-```bash
-black src/ tests/
-```
-
-### Generar Ejecutable
-
-```bash
-python build_tools/scripts/build_exe.py
-```
+- Las imágenes grandes se redimensionan automáticamente para optimizar memoria
+- Conversión a RGB automática para formatos especiales (RGBA, LA, etc.)
+- Procesamiento paralelo para mayor velocidad
+- Muestra progreso en tiempo real
+- Reporta errores individuales sin detener el proceso completo
 
 ## Contribuir
 
-1. Fork el proyecto
-2. Crear rama (`git checkout -b feature/nueva-caracteristica`)
-3. Commit cambios (`git commit -am 'Agrega nueva característica'`)
-4. Push a la rama (`git push origin feature/nueva-caracteristica`)
-5. Crear Pull Request
+Las contribuciones son bienvenidas. Por favor, asegúrate de:
+
+1. Seguir el estilo de código existente
+2. Agregar pruebas para nuevas funcionalidades
+3. Actualizar la documentación según sea necesario
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+Este proyecto está licenciado bajo MIT License - ver el archivo LICENSE para detalles.
+
+## Autor
+
+- Luis Fernando Moreno Montoya
+- GitHub: @mmlufer
+- Email: fernando.moreno@promitierra.org

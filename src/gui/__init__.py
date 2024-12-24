@@ -1,9 +1,6 @@
 """
-GUI components for the PDF converter application.
+GUI package initialization.
 """
-
 from .main_window import MainWindow
-from .folder_creator import FolderCreator
-from .progress_dialog import ProgressDialog
 
-__all__ = ['MainWindow', 'FolderCreator', 'ProgressDialog']
+__all__ = ['MainWindow']

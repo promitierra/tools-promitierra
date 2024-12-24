@@ -1,10 +1,18 @@
+"""
+Módulo de interfaz gráfica para la aplicación.
+"""
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import os
 from datetime import datetime
 from .pdf_converter import PDFConverter
-from .folder_creator import FolderCreator
-from ..utils.helpers import agregar_detalle, actualizar_progreso, generar_nombre_zip
+from src.core.folder_creator import FolderCreator
+from ..utils.helpers import (
+    agregar_detalle, 
+    actualizar_progreso, 
+    generar_nombre_zip,
+    validar_directorio
+)
 import threading
 
 class ImagenAPdfGUI:
@@ -23,7 +31,6 @@ class ImagenAPdfGUI:
         self.procesando = False
         self.modo_comprimido = ctk.BooleanVar(value=False)
         self.directorio_salida = None
-        self.patron_filtro = ctk.StringVar(value="*")
         
         # Inicializar componentes
         self.pdf_converter = PDFConverter()
@@ -94,6 +101,14 @@ class ImagenAPdfGUI:
 
     def crear_contenido_pestaña_principal(self):
         """Crear el contenido de la pestaña principal"""
+        # Título
+        titulo = ctk.CTkLabel(
+            self.pestaña_principal,
+            text="Convertir Imágenes a PDF",
+            font=ctk.CTkFont(size=20, weight="bold")
+        )
+        titulo.pack(pady=(20, 10))
+        
         # Frame superior
         frame_superior = ctk.CTkFrame(self.pestaña_principal)
         frame_superior.pack(fill="x", padx=20, pady=10)
@@ -105,15 +120,6 @@ class ImagenAPdfGUI:
             variable=self.modo_comprimido
         )
         self.check_comprimir.pack(side="left", padx=10)
-
-        # Entrada para patrón de filtro
-        ctk.CTkLabel(frame_superior, text="Filtro:").pack(side="left", padx=5)
-        filtro_entry = ctk.CTkEntry(
-            frame_superior, 
-            textvariable=self.patron_filtro,
-            width=150
-        )
-        filtro_entry.pack(side="left", padx=5)
 
         # Botón para seleccionar carpeta
         self.btn_seleccionar = ctk.CTkButton(
@@ -208,148 +214,193 @@ class ImagenAPdfGUI:
             messagebox.showerror("Error", str(e))
 
     def crear_carpetas(self):
-        """Crear carpetas desde Excel"""
+        """Crear carpetas desde plantilla Excel"""
+        # Seleccionar archivo Excel
+        ruta_excel = filedialog.askopenfilename(
+            title="Seleccionar Plantilla Excel",
+            filetypes=[("Archivos Excel", "*.xlsx *.xls")]
+        )
+        
+        if not ruta_excel:
+            return
+        
+        # Seleccionar directorio de salida
+        directorio_salida = filedialog.askdirectory(
+            title="Seleccionar Directorio de Salida"
+        )
+        
+        if not directorio_salida:
+            return
+        
+        # Clase de callbacks personalizada
+        class FolderCreationCallbacks:
+            def __init__(self, gui):
+                self.gui = gui
+                self.detalles_carpetas = []
+            
+            def on_folder_created(self, nombre_carpeta):
+                detalle = f"Carpeta creada: {nombre_carpeta}"
+                self.detalles_carpetas.append(detalle)
+                agregar_detalle(self.gui.detalles_carpetas, detalle, "success")
+            
+            def on_folder_exists(self, nombre_carpeta):
+                detalle = f"Carpeta ya existente: {nombre_carpeta}"
+                self.detalles_carpetas.append(detalle)
+                agregar_detalle(self.gui.detalles_carpetas, detalle, "warning")
+            
+            def on_folder_error(self, nombre_carpeta, error):
+                detalle = f"Error al crear carpeta {nombre_carpeta}: {error}"
+                self.detalles_carpetas.append(detalle)
+                agregar_detalle(self.gui.detalles_carpetas, detalle, "error")
+        
+        # Crear callbacks
+        callbacks = FolderCreationCallbacks(self)
+        
+        # Procesar plantilla
         try:
-            # Seleccionar archivo Excel
-            ruta_excel = filedialog.askopenfilename(
-                filetypes=[("Excel files", "*.xlsx")],
-                title="Seleccionar archivo Excel"
+            exito, mensaje = self.folder_creator.procesar_plantilla(
+                ruta_excel, 
+                directorio_salida,
+                callbacks
             )
-            if not ruta_excel:
-                return
-
-            # Seleccionar carpeta destino
-            directorio_destino = filedialog.askdirectory(
-                title="Seleccionar carpeta destino"
-            )
-            if not directorio_destino:
-                return
-
-            # Callbacks para el proceso
-            class Callbacks:
-                def on_folder_created(self, nombre):
-                    agregar_detalle(self.detalles_carpetas, f"Creada: {nombre}", "success")
-
-                def on_folder_exists(self, nombre):
-                    agregar_detalle(self.detalles_carpetas, f"Ya existe: {nombre}", "warning")
-
-                def on_folder_error(self, nombre, error):
-                    agregar_detalle(self.detalles_carpetas, f"Error en {nombre}: {error}", "error")
-
-            # Procesar plantilla
-            exito, resultado = self.folder_creator.procesar_plantilla(
-                ruta_excel,
-                directorio_destino,
-                Callbacks()
-            )
-
+            
+            # Mostrar mensaje de resultado
             if exito:
-                carpetas_creadas, errores = resultado
-                mensaje = f"Se crearon {carpetas_creadas} carpetas"
-                if errores:
-                    mensaje += f" con {len(errores)} errores"
-                messagebox.showinfo("Completado", mensaje)
+                messagebox.showinfo("Éxito", mensaje)
             else:
-                messagebox.showerror("Error", resultado)
-
+                messagebox.showerror("Error", mensaje)
+        
         except Exception as e:
-            agregar_detalle(self.detalles_carpetas, f"Error: {str(e)}", "error")
             messagebox.showerror("Error", str(e))
 
     def seleccionar_carpeta(self):
         """Seleccionar carpeta para procesar imágenes"""
         if self.procesando:
-            self.pdf_converter.cancelar_proceso()
-            self.btn_seleccionar.configure(text="Seleccionar Carpeta")
-            self.procesando = False
+            messagebox.showwarning(
+                "Procesando", 
+                "Ya hay un proceso en ejecución. Por favor espere."
+            )
             return
             
-        directorio = filedialog.askdirectory()
+        directorio = filedialog.askdirectory(
+            title="Seleccionar carpeta con imágenes"
+        )
+        
         if not directorio:
             return
             
-        # Validar directorio
         valido, mensaje = validar_directorio(directorio)
         if not valido:
             messagebox.showerror("Error", mensaje)
             return
+            
+        self.procesando = True
+        self.btn_seleccionar.configure(state="disabled")
+        self.barra_progreso.set(0)
+        self.lbl_estado.configure(text="Procesando imágenes...")
+        self.detalles.delete("1.0", "end")
         
-        # Configurar callbacks
         class Callbacks:
-            def __init__(self):
+            def __init__(self, gui):
+                self.gui = gui
                 self.started = False
                 self.files_found = 0
                 self.converted = []
                 self.errors = []
                 
             def on_start(self):
-                self.lbl_estado.configure(text="Iniciando proceso...")
-                self.btn_seleccionar.configure(text="Cancelar")
-                agregar_detalle(self.detalles, "Iniciando proceso...", "info")
-                
-            def on_no_images(self):
-                self.lbl_estado.configure(text="No se encontraron imágenes")
-                messagebox.showinfo("Info", "No se encontraron imágenes")
+                """Llamado cuando inicia el proceso"""
+                self.started = True
+                self.gui.lbl_estado.configure(text="Iniciando proceso...")
+                agregar_detalle(
+                    self.gui.detalles,
+                    "Iniciando proceso de conversión..."
+                )
                 
             def on_images_found(self, total):
-                self.lbl_estado.configure(text=f"Encontradas {total} imágenes")
-                agregar_detalle(self.detalles, f"Encontradas {total} imágenes", "info")
+                self.files_found = total
+                agregar_detalle(
+                    self.gui.detalles,
+                    f"Se encontraron {total} imágenes"
+                )
                 
-            def on_processing_file(self, nombre):
-                self.lbl_estado.configure(text=f"Procesando: {nombre}")
-                
-            def on_progress(self, valor):
-                actualizar_progreso(self.barra_progreso, valor)
+            def on_no_images(self):
+                agregar_detalle(
+                    self.gui.detalles,
+                    "No se encontraron imágenes en la carpeta",
+                    "warning"
+                )
+                self.gui.btn_seleccionar.configure(state="normal")
+                self.gui.procesando = False
                 
             def on_file_converted(self, nombre):
-                agregar_detalle(self.detalles, f"Convertido: {nombre}", "success")
+                self.converted.append(nombre)
+                actualizar_progreso(
+                    self.gui.barra_progreso,
+                    len(self.converted) / self.files_found if self.files_found > 0 else 0
+                )
+                agregar_detalle(
+                    self.gui.detalles,
+                    f"Convertido: {nombre}"
+                )
                 
             def on_file_error(self, nombre, error):
-                agregar_detalle(self.detalles, f"Error en {nombre}: {error}", "error")
+                """Llamado cuando hay un error al convertir un archivo"""
+                self.errors.append(error)
+                agregar_detalle(
+                    self.gui.detalles,
+                    f"Error al convertir {nombre}: {error}",
+                    "error"
+                )
+                
+            def on_error(self, error):
+                self.errors.append(error)
+                agregar_detalle(
+                    self.gui.detalles,
+                    f"Error: {error}",
+                    "error"
+                )
+                
+            def on_progress(self, valor):
+                actualizar_progreso(self.gui.barra_progreso, valor)
+                
+            def on_creating_zip(self):
+                """Llamado cuando se está creando el archivo ZIP"""
+                self.gui.lbl_estado.configure(text="Creando archivo ZIP...")
+                agregar_detalle(
+                    self.gui.detalles,
+                    "Creando archivo ZIP con los PDFs..."
+                )
                 
             def on_complete(self, convertidas, total, errores, modo_comprimido):
+                """Llamado cuando se completa todo el proceso"""
                 mensaje = f"Proceso completado. Convertidas {convertidas} de {total} imágenes"
                 if errores > 0:
                     mensaje += f" ({errores} errores)"
-                self.lbl_estado.configure(text=mensaje)
-                agregar_detalle(self.detalles, mensaje, "success")
-                
-            def on_creating_zip(self):
-                self.lbl_estado.configure(text="Creando archivo ZIP...")
-                agregar_detalle(self.detalles, "Creando archivo ZIP...", "info")
-                
-            def on_zip_created(self, ruta):
-                agregar_detalle(self.detalles, f"ZIP creado en: {ruta}", "success")
-                
-            def on_error(self, error):
-                messagebox.showerror("Error", f"Error: {error}")
-                agregar_detalle(self.detalles, f"Error: {error}", "error")
+                self.gui.lbl_estado.configure(text=mensaje)
+                agregar_detalle(
+                    self.gui.detalles,
+                    mensaje,
+                    "success"
+                )
                 
             def on_finish(self):
-                self.procesando = False
-                self.btn_seleccionar.configure(text="Seleccionar Carpeta")
+                self.gui.btn_seleccionar.configure(state="normal")
+                self.gui.procesando = False
                 
-        callbacks = Callbacks()
-        callbacks.__dict__.update(self.__dict__)
+            def on_zip_created(self, ruta):
+                agregar_detalle(
+                    self.gui.detalles,
+                    f"\nArchivo ZIP creado: {ruta}",
+                    "success"
+                )
         
-        # Iniciar procesamiento
-        self.procesando = True
-        if self.modo_comprimido.get():
-            # Solicitar ubicación para el ZIP
-            zip_path = filedialog.asksaveasfilename(
-                defaultextension=".zip",
-                filetypes=[("Archivo ZIP", "*.zip")],
-                initialfile=f"PDFs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
-            )
-            if not zip_path:
-                self.procesando = False
-                return
-            self.pdf_converter.directorio_salida = zip_path
-            
+        callbacks = Callbacks(self)
+        
         # Iniciar conversión en un hilo separado
         threading.Thread(
             target=self.pdf_converter.procesar_carpeta,
-            args=(directorio, self.modo_comprimido.get(), callbacks, self.patron_filtro.get())
+            args=(directorio, self.modo_comprimido.get(), callbacks)
         ).start()
 
     def iniciar(self):
