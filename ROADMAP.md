@@ -138,3 +138,30 @@ graph TB
 - Las fechas son estimativas y pueden ajustarse según el progreso
 - Se realizarán revisiones semanales del progreso
 - Se priorizará la estabilidad sobre nuevas características
+
+## Roadmap de Desarrollo
+
+### Versión Actual (1.2.0)
+- ✅ Implementación de la normalización de texto mejorada
+  - Formato consistente: `ID - NOMBRES APELLIDOS`
+  - Limpieza automática de IDs
+  - Manejo de casos especiales y espacios
+  - Pruebas unitarias completas
+
+### Próximas Características (1.3.0)
+- [ ] Mejoras en la interfaz de usuario
+  - [ ] Vista previa de la normalización de nombres
+  - [ ] Opción para editar nombres manualmente
+  - [ ] Historial de nombres procesados
+
+### Futuras Mejoras (2.0.0)
+- [ ] Soporte para más formatos de imagen
+- [ ] Compresión de PDFs configurable
+- [ ] Modo batch para procesamiento masivo
+- [ ] Integración con servicios en la nube
+
+### Mejoras Técnicas
+- [ ] Optimización del rendimiento
+- [ ] Mejora en el manejo de memoria
+- [ ] Más pruebas automatizadas
+- [ ] Documentación técnica completa

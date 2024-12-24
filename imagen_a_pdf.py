@@ -12,6 +12,7 @@ import tempfile
 import pandas as pd
 import openpyxl
 from openpyxl import Workbook
+import re
 
 class ImagenAPdfApp:
     def __init__(self):
@@ -121,6 +122,9 @@ class ImagenAPdfApp:
                             font=ctk.CTkFont(size=20, weight="bold"))
         titulo.pack(pady=5)
 
+        # Variable para el filtro (oculta para el usuario)
+        self.filtro = "*"
+
         # Checkbox para comprimir
         self.cb_comprimir = ctk.CTkCheckBox(
             frame,
@@ -134,7 +138,7 @@ class ImagenAPdfApp:
         # Botón para seleccionar carpeta
         self.btn_seleccionar = ctk.CTkButton(
             frame,
-            text="📁 Seleccionar Carpeta de Imágenes",
+            text="Seleccionar Carpeta",
             command=self.seleccionar_carpeta
         )
         self.btn_seleccionar.pack(pady=10)
@@ -238,10 +242,10 @@ class ImagenAPdfApp:
 
     def cargar_plantilla(self):
         try:
-            # Pedir al usuario la plantilla Excel
+            # Pedir al usuario que seleccione el archivo Excel
             ruta_excel = filedialog.askopenfilename(
-                filetypes=[("Excel files", "*.xlsx")],
-                title="Seleccionar plantilla Excel"
+                title="Seleccionar plantilla Excel",
+                filetypes=[("Archivos Excel", "*.xlsx")]
             )
             
             if not ruta_excel:
@@ -271,7 +275,15 @@ class ImagenAPdfApp:
             
             for _, row in df.iterrows():
                 try:
-                    nombre_carpeta = f"{row['ID']} - {row['NOMBRES']} {row['APELLIDOS']}"
+                    # Normalizar ID: eliminar todos los espacios
+                    id_value = ''.join(str(row['ID']).strip().split())
+                    
+                    # Normalizar nombres y apellidos usando la función normalizar_texto
+                    nombres = self.normalizar_texto(row['NOMBRES'])
+                    apellidos = self.normalizar_texto(row['APELLIDOS'])
+                    
+                    # Crear el nombre de la carpeta con el formato correcto
+                    nombre_carpeta = f"{id_value} - {nombres} {apellidos}"
                     ruta_carpeta = os.path.join(directorio_destino, nombre_carpeta)
                     
                     if not os.path.exists(ruta_carpeta):
@@ -281,7 +293,7 @@ class ImagenAPdfApp:
                     else:
                         self.detalles_carpetas_text.insert("end", f"⚠ Ya existe: {nombre_carpeta}\n")
                 except Exception as e:
-                    self.detalles_carpetas_text.insert("end", f"✗ Error al crear {nombre_carpeta}: {str(e)}\n")
+                    self.detalles_carpetas_text.insert("end", f"✗ Error al crear carpeta: {str(e)}\n")
             
             self.detalles_carpetas_text.configure(state="disabled")
             self.estado_carpetas_label.configure(text=f"Estado: {carpetas_creadas} carpetas creadas")
@@ -425,7 +437,68 @@ class ImagenAPdfApp:
         self.detalles_text.configure(state="disabled")
         self.ventana.update()
 
+    def normalizar_texto(self, texto):
+        """
+        Normaliza el texto eliminando espacios extra y convirtiendo a mayúsculas.
+        Formato: ID - NOMBRES APELLIDOS
+        Si no hay ID, se agrega "- " al inicio
+        Los IDs se limpian de caracteres especiales
+        """
+        if texto is None:
+            return " -"
+            
+        texto_str = str(texto).strip()
+        if texto_str == "":
+            return " - "
+            
+        # 1. Convertir a string y dividir por el guion (-)
+        partes = texto_str.split('-')
+        
+        # 2. Procesar el ID (primera parte)
+        if len(partes) > 1:
+            # Unir todas las partes numéricas del ID
+            id_texto = partes[0]
+            for i in range(1, len(partes)-1):
+                id_texto += partes[i]
+            
+            # Limpiar el ID de caracteres especiales y espacios
+            id_parte = ''.join(c for c in id_texto if c.isalnum()).strip()
+            # Procesar la parte de nombres
+            nombres_parte = ' '.join(partes[-1].split())
+            # Si hay nombres, retornar el formato completo
+            if nombres_parte:
+                return f"{id_parte} - {nombres_parte.upper()}"
+            # Si no hay nombres, solo retornar el ID con el guion
+            return f"{id_parte} - "
+        else:
+            # Si no hay guion, tratar todo como nombres
+            nombres_parte = ' '.join(partes[0].split())
+            if nombres_parte:
+                return f"- {nombres_parte.upper()}"
+            return " - "
 
+    def test_normalizar_texto(self):
+        """Pruebas unitarias para la función normalizar_texto"""
+        casos_prueba = [
+            ("l  uis   FERNando", "LUIS FERNANDO"),
+            ("   maria    clara   ", "MARIA CLARA"),
+            ("JuAn   pAbLo", "JUAN PABLO"),
+            ("ana  MARIA    PEREZ  LOPEZ", "ANA MARIA PEREZ LOPEZ"),
+            ("", ""),
+            ("  ", ""),
+            (None, ""),
+            (123, "123"),
+        ]
+        
+        for entrada, esperado in casos_prueba:
+            resultado = self.normalizar_texto(entrada)
+            if resultado != esperado:
+                print(f"Error en caso de prueba:")
+                print(f"Entrada: '{entrada}'")
+                print(f"Esperado: '{esperado}'")
+                print(f"Obtenido: '{resultado}'")
+                return False
+        return True
 
 if __name__ == "__main__":
     app = ImagenAPdfApp()

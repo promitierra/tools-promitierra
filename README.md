@@ -13,6 +13,30 @@ Aplicación para convertir imágenes a PDF de forma rápida y eficiente.
 - Opción para generar archivo ZIP con los PDFs
 - Manejo eficiente de memoria para imágenes grandes
 - Soporte para cancelación de operaciones
+- Conversión de imágenes a PDF
+- Organización automática de archivos por ID y nombre
+- Normalización de texto para nombres de carpetas:
+  - Formato: `ID - NOMBRES APELLIDOS`
+  - Manejo de espacios y mayúsculas automático
+  - Limpieza de caracteres especiales en IDs
+  - Soporte para nombres sin ID (se agrega "- " automáticamente)
+
+## Formato de Nombres
+
+La aplicación normaliza los nombres de las siguientes formas:
+
+1. Con ID:
+   - Entrada: `"123-luis FERNando"` → Salida: `"123 - LUIS FERNANDO"`
+   - Entrada: `"A-12 - Maria Clara"` → Salida: `"A12 - MARIA CLARA"`
+
+2. Sin ID:
+   - Entrada: `"Luis Fernando"` → Salida: `"- LUIS FERNANDO"`
+   - Entrada: `"Maria Clara"` → Salida: `"- MARIA CLARA"`
+
+3. Casos especiales:
+   - IDs con caracteres especiales se limpian: `"001.1"` → `"0011"`
+   - Espacios múltiples se normalizan
+   - Todo se convierte a mayúsculas
 
 ## Requisitos
 
