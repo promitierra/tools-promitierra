@@ -1,11 +1,13 @@
-# Tutorial de Uso - Herramientas ProMITIERRA v0.2.2
+# Tutorial de Uso - Herramientas ProMITIERRA v0.2.3
 
 ## Introducción
 
-Esta herramienta ofrece dos funcionalidades principales:
+Esta herramienta ofrece cuatro funcionalidades principales:
 
 1. Creación automática de carpetas desde plantilla Excel
 2. Conversión de imágenes a PDF manteniendo la estructura de carpetas
+3. Redimensionamiento de archivos PDF con páginas de distintos tamaños a tamaño carta
+4. Conversión de archivos imágen PDF a imágenes PNG sin bajar calidad
 
 ## Requisitos
 
@@ -68,6 +70,55 @@ Esta herramienta ofrece dos funcionalidades principales:
 
    - **Modo Simple**: Encontrarás los PDFs junto a las imágenes originales
    - **Modo ZIP**: Encontrarás un archivo ZIP en la carpeta principal con fecha y hora
+
+## 3. Redimensionamiento de PDF a Tamaño Carta
+
+1. **Iniciar la Aplicación**
+
+   - En la misma aplicación `Herramientas ProMITIERRA.exe`
+   - Ve a la pestaña "Redimensionar PDF"
+
+2. **Redimensionar PDF**
+
+   - Haz clic en el botón "Seleccionar PDF"
+   - Navega y selecciona el archivo PDF que deseas redimensionar
+   - Selecciona la opción de centrado si lo deseas (centrar el contenido en la página)
+   - Haz clic en "Redimensionar PDF"
+
+3. **Opciones de Redimensionamiento**
+
+   - **Centrado**: Activa esta opción para centrar el contenido en la página
+   - La herramienta detectará automáticamente si el documento es horizontal o vertical
+
+4. **Resultados**
+
+   - Se creará un nuevo archivo PDF con el mismo nombre más el sufijo "_carta"
+   - El nuevo PDF tendrá tamaño carta estándar (8.5" x 11")
+   - Se mantendrá la orientación original (vertical u horizontal)
+
+## 4. Conversión de PDF a PNG
+
+1. **Iniciar la Aplicación**
+
+   - En la misma aplicación `Herramientas ProMITIERRA.exe`
+   - Ve a la pestaña "PDF a PNG"
+
+2. **Convertir PDF a PNG**
+
+   - Haz clic en el botón "Seleccionar PDF"
+   - Navega y selecciona el archivo PDF que deseas convertir
+   - Haz clic en "Convertir a PNG"
+
+3. **Durante la Conversión**
+
+   - La herramienta extraerá imágenes incrustadas si existen
+   - Si no hay imágenes incrustadas, convertirá la primera página a PNG
+   - Se generará una imagen PNG de alta calidad (300 DPI)
+
+4. **Resultados**
+
+   - Se creará un archivo PNG con el mismo nombre base que el PDF
+   - La imagen tendrá alta resolución y calidad
 
 ## Ejemplos
 

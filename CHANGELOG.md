@@ -1,5 +1,18 @@
 * Registro de Cambios
 
+## [0.2.3] - 2024-12-25
+
+### Agregado
+- Implementada funcionalidad para redimensionar archivos PDF a tamaño carta
+- Agregada conversión de archivos PDF a imágenes PNG
+- Soporte para centrado automático del contenido al redimensionar PDFs
+- Preservación de la orientación original (vertical/horizontal) al redimensionar
+
+### Mejorado
+- Optimizado el proceso de extracción de imágenes desde PDFs
+- Mejorada la calidad de las imágenes PNG generadas (300 DPI)
+- Implementada verificación de integridad para archivos generados
+
 ## [0.2.2] - 2024-12-24
 
 ### Agregado

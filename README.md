@@ -1,9 +1,11 @@
-# Herramientas ProMITIERRA v0.2.1
+# Herramientas ProMITIERRA v0.2.3
 
 Aplicación python autoejecutable con herramientas que ahorran tiempo en trabajo de oficina.
 
 - Herramienta que crea carpetas automaticamente, nombrándolas de acuerdo a los valores incluidos en plantilla de excel.
 - Herramienta para convertir todas las imágenes en varios formatos dentro de un directorio y sus subcarpetas a formato PDF de forma rápida y eficiente.
+- Herramienta para redimensionar archivos PDF a tamaño carta, manteniendo la orientación original.
+- Herramienta para convertir archivos PDF a imágenes PNG de alta calidad.
 
 ## Características
 
@@ -11,6 +13,14 @@ Aplicación python autoejecutable con herramientas que ahorran tiempo en trabajo
 - Soporte para múltiples formatos de imagen:
   - PNG, JPG, JPEG, BMP, TIFF, WEBP, GIF
   - Manejo case-insensitive de extensiones (*.jpg, *.JPG, etc.)
+- Redimensionamiento de PDFs a tamaño carta:
+  - Preservación de la orientación original (vertical/horizontal)
+  - Opción para centrar automáticamente el contenido
+  - Escalado proporcional para evitar distorsiones
+- Conversión de PDFs a imágenes PNG:
+  - Extracción de imágenes incrustadas en PDFs
+  - Generación de imágenes de alta calidad (300 DPI)
+  - Verificación de integridad de archivos generados
 - Interfaz gráfica moderna e intuitiva
 - Opción para generar archivo ZIP con los PDFs
 - Preservación de la estructura de directorios:

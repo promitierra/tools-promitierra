@@ -7,6 +7,8 @@ import os
 from datetime import datetime
 from .pdf_converter import PDFConverter
 from src.core.folder_creator import FolderCreator
+from src.core.pdf_resizer import PDFResizer
+from src.core.pdf_to_png_converter import PDFToPNGConverter
 from ..utils.helpers import (
     agregar_detalle, 
     actualizar_progreso, 
@@ -30,11 +32,14 @@ class ImagenAPdfGUI:
         # Variables de control
         self.procesando = False
         self.modo_comprimido = ctk.BooleanVar(value=False)
+        self.centrar_contenido = ctk.BooleanVar(value=False)
         self.directorio_salida = None
         
         # Inicializar componentes
         self.pdf_converter = PDFConverter()
         self.folder_creator = FolderCreator()
+        self.pdf_resizer = PDFResizer()
+        self.pdf_to_png_converter = PDFToPNGConverter()
         
         # Crear interfaz
         self.crear_widgets()
@@ -47,10 +52,14 @@ class ImagenAPdfGUI:
         # Pestañas
         self.pestaña_carpetas = self.notebook.add("Crear Carpetas")
         self.pestaña_principal = self.notebook.add("imagenes a PDFs")
+        self.pestaña_resize_pdf = self.notebook.add("Redimensionar PDF")
+        self.pestaña_pdf_a_png = self.notebook.add("PDF a PNG")
         
         # Crear contenido
         self.crear_contenido_pestaña_carpetas()
         self.crear_contenido_pestaña_principal()
+        self.crear_contenido_pestaña_resize_pdf()
+        self.crear_contenido_pestaña_pdf_a_png()
 
     def crear_contenido_pestaña_carpetas(self):
         """Crear el contenido de la pestaña de creación de carpetas"""
@@ -403,6 +412,392 @@ class ImagenAPdfGUI:
             args=(directorio, self.modo_comprimido.get(), callbacks)
         ).start()
 
+    def crear_contenido_pestaña_resize_pdf(self):
+        """Crear el contenido de la pestaña de redimensionamiento de PDF"""
+        # Título
+        titulo = ctk.CTkLabel(
+            self.pestaña_resize_pdf,
+            text="Redimensionar PDF a Tamaño Carta",
+            font=ctk.CTkFont(size=20, weight="bold")
+        )
+        titulo.pack(pady=(20, 10))
+        
+        # Descripción
+        descripcion = ctk.CTkLabel(
+            self.pestaña_resize_pdf,
+            text="Redimensiona un PDF al tamaño carta, preservando la orientación",
+            font=ctk.CTkFont(size=14)
+        )
+        descripcion.pack(pady=(0, 20))
+        
+        # Frame para opciones
+        opciones_frame = ctk.CTkFrame(self.pestaña_resize_pdf)
+        opciones_frame.pack(fill="x", padx=20, pady=10)
+        
+        # Checkbox para centrar contenido
+        self.check_centrar = ctk.CTkCheckBox(
+            opciones_frame,
+            text="Centrar contenido en la página",
+            variable=self.centrar_contenido
+        )
+        self.check_centrar.pack(side="left", padx=10, pady=10)
+        
+        # Frame para botones
+        botones_frame = ctk.CTkFrame(self.pestaña_resize_pdf, fg_color="transparent")
+        botones_frame.pack(fill="x", padx=20, pady=10)
+        
+        # Botón para seleccionar archivo PDF
+        self.btn_seleccionar_pdf = ctk.CTkButton(
+            botones_frame,
+            text="Seleccionar PDF",
+            command=self.seleccionar_pdf_para_redimensionar
+        )
+        self.btn_seleccionar_pdf.pack(side="left", padx=5, expand=True)
+        
+        # Barra de progreso
+        self.barra_progreso_resize = ctk.CTkProgressBar(self.pestaña_resize_pdf)
+        self.barra_progreso_resize.pack(fill="x", padx=20, pady=10)
+        self.barra_progreso_resize.set(0)
+        
+        # Estado
+        self.lbl_estado_resize = ctk.CTkLabel(
+            self.pestaña_resize_pdf,
+            text="Esperando selección de archivo PDF..."
+        )
+        self.lbl_estado_resize.pack(pady=5)
+        
+        # Área de detalles
+        self.detalles_resize = ctk.CTkTextbox(
+            self.pestaña_resize_pdf,
+            height=75
+        )
+        self.detalles_resize.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Footer
+        self.crear_footer(self.pestaña_resize_pdf)
+    
+    def crear_contenido_pestaña_pdf_a_png(self):
+        """Crear el contenido de la pestaña de conversión de PDF a PNG"""
+        # Título
+        titulo = ctk.CTkLabel(
+            self.pestaña_pdf_a_png,
+            text="Convertir PDF a PNG",
+            font=ctk.CTkFont(size=20, weight="bold")
+        )
+        titulo.pack(pady=(20, 10))
+        
+        # Descripción
+        descripcion = ctk.CTkLabel(
+            self.pestaña_pdf_a_png,
+            text="Extrae imágenes de archivos PDF y las guarda como PNG",
+            font=ctk.CTkFont(size=14)
+        )
+        descripcion.pack(pady=(0, 20))
+        
+        # Frame para botones
+        botones_frame = ctk.CTkFrame(self.pestaña_pdf_a_png, fg_color="transparent")
+        botones_frame.pack(fill="x", padx=20, pady=10)
+        
+        # Botón para seleccionar archivo PDF
+        self.btn_seleccionar_pdf_png = ctk.CTkButton(
+            botones_frame,
+            text="Seleccionar PDF",
+            command=self.seleccionar_pdf_para_png
+        )
+        self.btn_seleccionar_pdf_png.pack(side="left", padx=5, expand=True)
+        
+        # Botón para seleccionar carpeta con PDFs
+        self.btn_seleccionar_carpeta_png = ctk.CTkButton(
+            botones_frame,
+            text="Seleccionar Carpeta",
+            command=self.seleccionar_carpeta_para_png
+        )
+        self.btn_seleccionar_carpeta_png.pack(side="left", padx=5, expand=True)
+        
+        # Barra de progreso
+        self.barra_progreso_png = ctk.CTkProgressBar(self.pestaña_pdf_a_png)
+        self.barra_progreso_png.pack(fill="x", padx=20, pady=10)
+        self.barra_progreso_png.set(0)
+        
+        # Estado
+        self.lbl_estado_png = ctk.CTkLabel(
+            self.pestaña_pdf_a_png,
+            text="Esperando selección de archivo o carpeta..."
+        )
+        self.lbl_estado_png.pack(pady=5)
+        
+        # Área de detalles
+        self.detalles_png = ctk.CTkTextbox(
+            self.pestaña_pdf_a_png,
+            height=75
+        )
+        self.detalles_png.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Footer
+        self.crear_footer(self.pestaña_pdf_a_png)
+    
+    def seleccionar_pdf_para_redimensionar(self):
+        """Seleccionar archivo PDF para redimensionar"""
+        if self.procesando:
+            messagebox.showwarning(
+                "Procesando", 
+                "Ya hay un proceso en ejecución. Por favor espere."
+            )
+            return
+            
+        # Seleccionar archivo PDF
+        input_pdf = filedialog.askopenfilename(
+            title="Seleccionar archivo PDF",
+            filetypes=[("Archivos PDF", "*.pdf")]
+        )
+        
+        if not input_pdf:
+            return
+        
+        # Solicitar nombre del archivo de salida
+        nombre_base = os.path.splitext(input_pdf)[0]
+        output_pdf_default = f"{nombre_base}_letter.pdf"
+        output_pdf_input = filedialog.asksaveasfilename(
+            title="Guardar PDF redimensionado",
+            initialfile=os.path.basename(output_pdf_default),
+            filetypes=[("Archivos PDF", "*.pdf")],
+            defaultextension=".pdf"
+        )
+        
+        if not output_pdf_input:
+            return
+            
+        self.procesando = True
+        self.btn_seleccionar_pdf.configure(state="disabled")
+        self.barra_progreso_resize.set(0)
+        self.lbl_estado_resize.configure(text="Redimensionando PDF...")
+        self.detalles_resize.delete("1.0", "end")
+        
+        # Iniciar redimensionamiento en un hilo separado
+        threading.Thread(
+            target=self.redimensionar_pdf,
+            args=(input_pdf, output_pdf_input, self.centrar_contenido.get())
+        ).start()
+    
+    def redimensionar_pdf(self, input_pdf, output_pdf, centrar):
+        """Redimensionar PDF a tamaño carta"""
+        try:
+            agregar_detalle(
+                self.detalles_resize,
+                f"Redimensionando: {os.path.basename(input_pdf)}"
+            )
+            
+            # Actualizar progreso
+            self.barra_progreso_resize.set(0.2)
+            
+            # Redimensionar PDF
+            resultado = self.pdf_resizer.resize_pdf(input_pdf, output_pdf, centrar)
+            
+            # Actualizar progreso
+            self.barra_progreso_resize.set(1.0)
+            
+            if resultado:
+                mensaje = f"PDF redimensionado exitosamente: {os.path.basename(output_pdf)}"
+                self.lbl_estado_resize.configure(text=mensaje)
+                agregar_detalle(self.detalles_resize, mensaje, "success")
+                messagebox.showinfo("Éxito", mensaje)
+            else:
+                mensaje = "Error al redimensionar el PDF"
+                self.lbl_estado_resize.configure(text=mensaje)
+                agregar_detalle(self.detalles_resize, mensaje, "error")
+                messagebox.showerror("Error", mensaje)
+                
+        except Exception as e:
+            mensaje = f"Error: {str(e)}"
+            self.lbl_estado_resize.configure(text="Error en el proceso")
+            agregar_detalle(self.detalles_resize, mensaje, "error")
+            messagebox.showerror("Error", mensaje)
+        finally:
+            self.btn_seleccionar_pdf.configure(state="normal")
+            self.procesando = False
+    
+    def seleccionar_pdf_para_png(self):
+        """Seleccionar archivo PDF para convertir a PNG"""
+        if self.procesando:
+            messagebox.showwarning(
+                "Procesando", 
+                "Ya hay un proceso en ejecución. Por favor espere."
+            )
+            return
+            
+        # Seleccionar archivo PDF
+        input_pdf = filedialog.askopenfilename(
+            title="Seleccionar archivo PDF",
+            filetypes=[("Archivos PDF", "*.pdf")]
+        )
+        
+        if not input_pdf:
+            return
+            
+        self.procesando = True
+        self.btn_seleccionar_pdf_png.configure(state="disabled")
+        self.btn_seleccionar_carpeta_png.configure(state="disabled")
+        self.barra_progreso_png.set(0)
+        self.lbl_estado_png.configure(text="Convirtiendo PDF a PNG...")
+        self.detalles_png.delete("1.0", "end")
+        
+        # Iniciar conversión en un hilo separado
+        threading.Thread(
+            target=self.convertir_pdf_a_png,
+            args=(input_pdf,)
+        ).start()
+    
+    def seleccionar_carpeta_para_png(self):
+        """Seleccionar carpeta con PDFs para convertir a PNG"""
+        if self.procesando:
+            messagebox.showwarning(
+                "Procesando", 
+                "Ya hay un proceso en ejecución. Por favor espere."
+            )
+            return
+            
+        # Seleccionar carpeta
+        directorio = filedialog.askdirectory(
+            title="Seleccionar carpeta con archivos PDF"
+        )
+        
+        if not directorio:
+            return
+            
+        valido, mensaje = validar_directorio(directorio)
+        if not valido:
+            messagebox.showerror("Error", mensaje)
+            return
+            
+        self.procesando = True
+        self.btn_seleccionar_pdf_png.configure(state="disabled")
+        self.btn_seleccionar_carpeta_png.configure(state="disabled")
+        self.barra_progreso_png.set(0)
+        self.lbl_estado_png.configure(text="Buscando archivos PDF...")
+        self.detalles_png.delete("1.0", "end")
+        
+        # Iniciar conversión en un hilo separado
+        threading.Thread(
+            target=self.convertir_carpeta_pdf_a_png,
+            args=(directorio,)
+        ).start()
+    
+    def convertir_pdf_a_png(self, pdf_path):
+        """Convertir un archivo PDF a PNG"""
+        try:
+            agregar_detalle(
+                self.detalles_png,
+                f"Convirtiendo: {os.path.basename(pdf_path)}"
+            )
+            
+            # Actualizar progreso
+            self.barra_progreso_png.set(0.2)
+            
+            # Convertir PDF a PNG
+            resultado = self.pdf_to_png_converter.convert_pdf_to_png(pdf_path)
+            
+            # Actualizar progreso
+            self.barra_progreso_png.set(1.0)
+            
+            if resultado:
+                mensaje = f"PDF convertido exitosamente: {os.path.basename(pdf_path)}"
+                self.lbl_estado_png.configure(text=mensaje)
+                agregar_detalle(self.detalles_png, mensaje, "success")
+                messagebox.showinfo("Éxito", mensaje)
+            else:
+                mensaje = "Error al convertir el PDF"
+                self.lbl_estado_png.configure(text=mensaje)
+                agregar_detalle(self.detalles_png, mensaje, "error")
+                messagebox.showerror("Error", mensaje)
+                
+        except Exception as e:
+            mensaje = f"Error: {str(e)}"
+            self.lbl_estado_png.configure(text="Error en el proceso")
+            agregar_detalle(self.detalles_png, mensaje, "error")
+            messagebox.showerror("Error", mensaje)
+        finally:
+            self.btn_seleccionar_pdf_png.configure(state="normal")
+            self.btn_seleccionar_carpeta_png.configure(state="normal")
+            self.procesando = False
+    
+    def convertir_carpeta_pdf_a_png(self, directorio):
+        """Convertir todos los PDFs de una carpeta a PNG"""
+        try:
+            # Buscar archivos PDF
+            pdf_files = self.pdf_to_png_converter.find_pdf_files(directorio)
+            total_files = len(pdf_files)
+            
+            if total_files == 0:
+                mensaje = "No se encontraron archivos PDF en la carpeta"
+                self.lbl_estado_png.configure(text=mensaje)
+                agregar_detalle(self.detalles_png, mensaje, "warning")
+                messagebox.showwarning("Advertencia", mensaje)
+                return
+                
+            agregar_detalle(
+                self.detalles_png,
+                f"Encontrados {total_files} archivos PDF para convertir"
+            )
+            
+            # Convertir cada archivo
+            successful = 0
+            failed = 0
+            
+            for i, pdf_path in enumerate(pdf_files):
+                if not self.procesando:  # Verificar si se canceló el proceso
+                    break
+                    
+                agregar_detalle(
+                    self.detalles_png,
+                    f"Convirtiendo ({i+1}/{total_files}): {os.path.basename(pdf_path)}"
+                )
+                
+                # Actualizar progreso
+                self.barra_progreso_png.set((i+1) / total_files)
+                
+                # Convertir PDF a PNG
+                try:
+                    if self.pdf_to_png_converter.convert_pdf_to_png(pdf_path):
+                        successful += 1
+                        agregar_detalle(
+                            self.detalles_png,
+                            f"Convertido: {os.path.basename(pdf_path)}",
+                            "success"
+                        )
+                    else:
+                        failed += 1
+                        agregar_detalle(
+                            self.detalles_png,
+                            f"Error al convertir: {os.path.basename(pdf_path)}",
+                            "error"
+                        )
+                except Exception as e:
+                    failed += 1
+                    agregar_detalle(
+                        self.detalles_png,
+                        f"Error al convertir {os.path.basename(pdf_path)}: {str(e)}",
+                        "error"
+                    )
+            
+            # Mostrar resumen
+            mensaje = f"Proceso completado. Convertidos {successful} de {total_files} archivos"
+            if failed > 0:
+                mensaje += f" ({failed} errores)"
+                
+            self.lbl_estado_png.configure(text=mensaje)
+            agregar_detalle(self.detalles_png, mensaje, "success")
+            messagebox.showinfo("Proceso completado", mensaje)
+                
+        except Exception as e:
+            mensaje = f"Error: {str(e)}"
+            self.lbl_estado_png.configure(text="Error en el proceso")
+            agregar_detalle(self.detalles_png, mensaje, "error")
+            messagebox.showerror("Error", mensaje)
+        finally:
+            self.btn_seleccionar_pdf_png.configure(state="normal")
+            self.btn_seleccionar_carpeta_png.configure(state="normal")
+            self.procesando = False
+    
     def iniciar(self):
         """Iniciar la aplicación"""
         self.ventana.mainloop()
