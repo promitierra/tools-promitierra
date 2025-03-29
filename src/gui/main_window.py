@@ -161,7 +161,7 @@ class MainWindow(ctk.CTk):
 
         # Area de Detalles
         self.details_text = ctk.CTkTextbox(frame, height=200)
-        self.details_text.pack(fill="x", padx=10, pady=(10,10)) #revisar cambios
+        self.details_text.pack(fill="x", padx=10, pady=(10,10))
         self.details_text.configure(state="disabled")
 
         # Configure frame padding
