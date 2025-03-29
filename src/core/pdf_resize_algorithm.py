@@ -1,4 +1,29 @@
+"""
+Módulo principal para el redimensionamiento de archivos PDF a tamaño carta.
+
+Este módulo implementa el algoritmo central para redimensionar páginas PDF a tamaño carta,
+manteniendo la orientación original (vertical u horizontal) y proporcionando opciones
+para centrar el contenido.
+
+Constantes:
+    LETTER_WIDTH (float): Ancho de página carta en puntos (612)
+    LETTER_HEIGHT (float): Alto de página carta en puntos (792)
+    LETTER_WIDTH_LANDSCAPE (float): Ancho de página carta horizontal (792)
+    LETTER_HEIGHT_LANDSCAPE (float): Alto de página carta horizontal (612)
+
+Funciones:
+    resize_pdf_page: Redimensiona una página individual a tamaño carta
+    process_pdf: Procesa un documento PDF completo, redimensionando todas sus páginas
+"""
+
 import fitz
+import logging
+from pathlib import Path
+import time
+
+# Configurar el logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Definir constantes de tamaño (disponibles para importar)
 LETTER_WIDTH = 8.5 * 72  # 612 puntos
@@ -10,13 +35,24 @@ def resize_pdf_page(page, centrar=False):
     """
     Redimensiona una página de PDF a tamaño carta, preservando la orientación.
     
+    Esta función toma una página de PDF y la redimensiona al tamaño carta estándar
+    (8.5" x 11"), manteniendo su orientación original (vertical u horizontal).
+    El contenido se escala proporcionalmente para ajustarse a las nuevas dimensiones.
+    
     Args:
         page (fitz.Page): La página de PDF a redimensionar
-        centrar (bool): Si es True, centra el contenido en la página
+        centrar (bool): Si es True, centra el contenido en la página. Si es False,
+                       el contenido se alinea a la esquina superior izquierda.
         
     Returns:
         fitz.Document: Un documento temporal con la página redimensionada
+        
+    Raises:
+        ValueError: Si la página está vacía o no se puede procesar
     """
+    inicio = time.time()
+    logger.info(f"Iniciando redimensionamiento de página {page.number + 1}")
+    
     # Obtener dimensiones actuales
     rect = page.rect
     ancho_actual = rect.width
@@ -24,6 +60,8 @@ def resize_pdf_page(page, centrar=False):
 
     # Determinar si la página es horizontal o vertical
     es_horizontal = ancho_actual > alto_actual
+    orientacion = "horizontal" if es_horizontal else "vertical"
+    logger.debug(f"Página {page.number + 1}: Orientación {orientacion}, dimensiones: {ancho_actual}x{alto_actual}")
     
     # Seleccionar dimensiones de carta según orientación
     if es_horizontal:
@@ -39,6 +77,7 @@ def resize_pdf_page(page, centrar=False):
     escala_ancho = ancho_destino / ancho_actual
     escala_alto = alto_destino / alto_actual
     escala = min(escala_ancho, escala_alto)
+    logger.debug(f"Factor de escala calculado: {escala:.3f}")
 
     # Crear una página temporal con tamaño carta en la orientación correcta
     temp_doc = fitz.open()
@@ -52,16 +91,15 @@ def resize_pdf_page(page, centrar=False):
         
         # Si se solicita centrar, calcular desplazamientos para centrar el contenido
         if centrar:
+            logger.debug("Aplicando centrado de contenido")
             # Calcular desplazamientos para centrar
             desplazamiento_x = (ancho_destino - (ancho_actual * escala)) / 2
             desplazamiento_y = (alto_destino - (alto_actual * escala)) / 2
             
             # Crear un rectángulo centrado para mostrar el contenido
-            # Usamos el rectángulo completo de la página destino
             rect_destino = temp_page.rect
             
             # Crear una matriz de transformación que incluya tanto la escala como el desplazamiento
-            # para centrar el contenido como un objeto completo
             matriz = fitz.Matrix(escala, escala).pretranslate(desplazamiento_x, desplazamiento_y)
             
             # Mostrar el contenido centrado usando la matriz de transformación
@@ -72,48 +110,66 @@ def resize_pdf_page(page, centrar=False):
                 matriz
             )
         else:
-            # Mostrar el contenido sin centrar (alineado a la esquina superior izquierda)
+            logger.debug("Aplicando alineación a la esquina superior izquierda")
+            # Mostrar el contenido sin centrar
             temp_page.show_pdf_page(
                 temp_page.rect,
-                page.parent,  # Documento original
-                page.number,  # Número de página
+                page.parent,
+                page.number,
                 fitz.Matrix(escala, escala)
             )
     except ValueError as e:
-        # Manejar el caso de páginas vacías
         if "nothing to show - source page empty" in str(e):
-            # Para páginas vacías, simplemente continuamos con la página en blanco
-            print(f"Advertencia: La página está vacía, se mantendrá en blanco")
+            logger.warning(f"La página {page.number + 1} está vacía, se mantendrá en blanco")
         else:
-            # Si es otro tipo de error, lo propagamos
+            logger.error(f"Error al procesar la página {page.number + 1}: {str(e)}")
             raise
     
+    tiempo_total = time.time() - inicio
+    logger.info(f"Página {page.number + 1} redimensionada en {tiempo_total:.2f} segundos")
     return temp_doc
 
 def process_pdf(doc, centrar=False, progress_callback=None):
     """
     Procesa un documento PDF completo, redimensionando todas sus páginas a tamaño carta.
     
+    Esta función procesa cada página del documento PDF de entrada y crea un nuevo
+    documento con todas las páginas redimensionadas a tamaño carta. Mantiene la
+    orientación original de cada página y proporciona la opción de centrar el contenido.
+    
     Args:
         doc (fitz.Document): El documento PDF a procesar
         centrar (bool): Si es True, centra el contenido en cada página
-        progress_callback (callable, optional): Función para reportar el progreso
-            Debe aceptar dos parámetros: página actual y total de páginas
+        progress_callback (callable, optional): Función para reportar el progreso.
+            La función debe aceptar dos parámetros:
+            - página_actual (int): Número de página siendo procesada (1-indexed)
+            - total_paginas (int): Número total de páginas en el documento
             
     Returns:
         fitz.Document: Un nuevo documento con todas las páginas redimensionadas
+        
+    Raises:
+        ValueError: Si el documento está vacío o no contiene páginas
     """
+    inicio_total = time.time()
+    
     # Verificar que el documento tenga páginas
     if len(doc) == 0:
+        logger.error("El documento PDF no contiene páginas")
         raise ValueError("El documento PDF no contiene páginas")
-        
+    
+    logger.info(f"Iniciando procesamiento de documento con {len(doc)} páginas")
+    logger.info(f"Modo de centrado: {'activado' if centrar else 'desactivado'}")
+    
     # Crear un nuevo documento para almacenar las páginas redimensionadas
     new_doc_final = fitz.open()
 
     # Procesar cada página del documento original
     num_paginas = len(doc)
+    tiempo_inicio_pagina = time.time()
+    
     for i in range(num_paginas):
-        # Reportar progreso si se proporcionó una función de callback
+        # Reportar progreso
         if progress_callback:
             progress_callback(i + 1, num_paginas)
             
@@ -128,5 +184,19 @@ def process_pdf(doc, centrar=False, progress_callback=None):
         
         # Cerrar el documento temporal
         temp_doc.close()
+        
+        # Calcular y mostrar estadísticas de tiempo
+        tiempo_pagina = time.time() - tiempo_inicio_pagina
+        tiempo_promedio = (time.time() - inicio_total) / (i + 1)
+        tiempo_estimado = tiempo_promedio * (num_paginas - (i + 1))
+        
+        logger.info(f"Progreso: {i + 1}/{num_paginas} páginas ({((i + 1)/num_paginas)*100:.1f}%)")
+        logger.debug(f"Tiempo página actual: {tiempo_pagina:.2f}s, Promedio: {tiempo_promedio:.2f}s, Estimado restante: {tiempo_estimado:.2f}s")
+        
+        tiempo_inicio_pagina = time.time()
+
+    tiempo_total = time.time() - inicio_total
+    logger.info(f"Procesamiento completado en {tiempo_total:.2f} segundos")
+    logger.info(f"Tiempo promedio por página: {tiempo_total/num_paginas:.2f} segundos")
 
     return new_doc_final

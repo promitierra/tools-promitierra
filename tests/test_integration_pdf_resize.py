@@ -121,6 +121,8 @@ def compare_pdf_files(file1, file2):
         if 'doc2' in locals() and doc2:
             doc2.close()
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_integration_resize_pdf_vs_pdfresizer(sample_pdfs, tmp_path):
     """
     Prueba de integración que verifica que ambas implementaciones
@@ -149,6 +151,8 @@ def test_integration_resize_pdf_vs_pdfresizer(sample_pdfs, tmp_path):
         identical, message = compare_pdf_files(output_script, output_class)
         assert identical, f"Los PDFs no son idénticos: {message}"
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_integration_resize_pdf_vs_pdfresizer_no_center(sample_pdfs, tmp_path):
     """
     Prueba de integración que verifica que ambas implementaciones
@@ -177,6 +181,7 @@ def test_integration_resize_pdf_vs_pdfresizer_no_center(sample_pdfs, tmp_path):
         identical, message = compare_pdf_files(output_script, output_class)
         assert identical, f"Los PDFs no son idénticos: {message}"
 
+@pytest.mark.integration
 def test_integration_resize_pdf_vs_pdfresizer_with_progress(sample_pdfs, tmp_path):
     """
     Prueba de integración que verifica que ambas implementaciones
