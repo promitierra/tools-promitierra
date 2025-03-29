@@ -20,6 +20,12 @@ import fitz
 import logging
 from pathlib import Path
 import time
+import hashlib
+from typing import Dict, Tuple, Optional, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+import multiprocessing
+import queue
 
 # Configurar el logger
 logger = logging.getLogger(__name__)
@@ -30,6 +36,100 @@ LETTER_WIDTH = 8.5 * 72  # 612 puntos
 LETTER_HEIGHT = 11 * 72  # 792 puntos
 LETTER_WIDTH_LANDSCAPE = 11 * 72  # 792 puntos
 LETTER_HEIGHT_LANDSCAPE = 8.5 * 72  # 612 puntos
+
+# Caché de páginas procesadas
+_page_cache: Dict[str, Tuple[fitz.Document, float]] = {}
+_cache_hits = 0
+_cache_misses = 0
+_max_cache_size = 100  # Número máximo de páginas en caché
+_cache_lock = threading.Lock()  # Lock para acceso al caché
+
+# Cola para resultados ordenados
+_result_queue = queue.PriorityQueue()
+
+def _get_page_hash(page: fitz.Page, centrar: bool) -> str:
+    """
+    Genera un hash único para una página basado en su contenido y configuración.
+    
+    Args:
+        page (fitz.Page): La página a hashear
+        centrar (bool): Si el contenido está centrado
+        
+    Returns:
+        str: Hash único de la página
+    """
+    # Obtener el contenido de la página como bytes
+    content = page.get_text("rawdict").encode()
+    
+    # Crear un hash que incluya el contenido y la configuración
+    hasher = hashlib.sha256()
+    hasher.update(content)
+    hasher.update(str(centrar).encode())
+    hasher.update(str(page.rect).encode())
+    
+    return hasher.hexdigest()
+
+def _get_from_cache(page_hash: str) -> Optional[fitz.Document]:
+    """
+    Obtiene una página del caché si existe y no ha expirado.
+    Thread-safe usando un lock.
+    
+    Args:
+        page_hash (str): Hash de la página
+        
+    Returns:
+        Optional[fitz.Document]: Documento en caché o None si no existe
+    """
+    global _cache_hits, _cache_misses
+    
+    with _cache_lock:
+        if page_hash in _page_cache:
+            doc, timestamp = _page_cache[page_hash]
+            # Verificar si el caché ha expirado (30 minutos)
+            if time.time() - timestamp <= 1800:
+                _cache_hits += 1
+                logger.debug(f"Cache hit! Hits: {_cache_hits}, Misses: {_cache_misses}")
+                return doc.copy()  # Devolver una copia para evitar modificaciones
+        
+        _cache_misses += 1
+        logger.debug(f"Cache miss! Hits: {_cache_hits}, Misses: {_cache_misses}")
+        return None
+
+def _add_to_cache(page_hash: str, doc: fitz.Document):
+    """
+    Añade una página al caché, manteniendo el límite de tamaño.
+    Thread-safe usando un lock.
+    
+    Args:
+        page_hash (str): Hash de la página
+        doc (fitz.Document): Documento a cachear
+    """
+    with _cache_lock:
+        # Si el caché está lleno, eliminar la entrada más antigua
+        if len(_page_cache) >= _max_cache_size:
+            oldest_key = min(_page_cache.keys(), key=lambda k: _page_cache[k][1])
+            del _page_cache[oldest_key]
+        
+        # Añadir nueva entrada
+        _page_cache[page_hash] = (doc.copy(), time.time())  # Guardar una copia y el timestamp
+
+def _process_page_parallel(args: Tuple[fitz.Page, bool, int]) -> Tuple[int, fitz.Document]:
+    """
+    Procesa una página en paralelo.
+    
+    Args:
+        args: Tupla con (página, centrar, índice)
+        
+    Returns:
+        Tupla con (índice, documento procesado)
+    """
+    page, centrar, idx = args
+    try:
+        doc = resize_pdf_page(page, centrar)
+        return idx, doc
+    except Exception as e:
+        logger.error(f"Error procesando página {idx + 1}: {str(e)}")
+        raise
 
 def resize_pdf_page(page, centrar=False):
     """
@@ -53,6 +153,14 @@ def resize_pdf_page(page, centrar=False):
     inicio = time.time()
     logger.info(f"Iniciando redimensionamiento de página {page.number + 1}")
     
+    # Intentar obtener del caché
+    page_hash = _get_page_hash(page, centrar)
+    cached_doc = _get_from_cache(page_hash)
+    if cached_doc is not None:
+        tiempo_cache = time.time() - inicio
+        logger.info(f"Página {page.number + 1} recuperada del caché en {tiempo_cache:.2f} segundos")
+        return cached_doc
+
     # Obtener dimensiones actuales
     rect = page.rect
     ancho_actual = rect.width
@@ -127,15 +235,19 @@ def resize_pdf_page(page, centrar=False):
     
     tiempo_total = time.time() - inicio
     logger.info(f"Página {page.number + 1} redimensionada en {tiempo_total:.2f} segundos")
-    return temp_doc
+    
+    # Añadir al caché antes de retornar
+    _add_to_cache(page_hash, temp_doc)
+    return temp_doc.copy()  # Retornar una copia para evitar modificaciones
 
-def process_pdf(doc, centrar=False, progress_callback=None):
+def process_pdf(doc, centrar=False, progress_callback=None, batch_size=10, max_workers=None):
     """
     Procesa un documento PDF completo, redimensionando todas sus páginas a tamaño carta.
     
     Esta función procesa cada página del documento PDF de entrada y crea un nuevo
     documento con todas las páginas redimensionadas a tamaño carta. Mantiene la
     orientación original de cada página y proporciona la opción de centrar el contenido.
+    Para documentos grandes, procesa las páginas en lotes para optimizar el uso de memoria.
     
     Args:
         doc (fitz.Document): El documento PDF a procesar
@@ -144,6 +256,10 @@ def process_pdf(doc, centrar=False, progress_callback=None):
             La función debe aceptar dos parámetros:
             - página_actual (int): Número de página siendo procesada (1-indexed)
             - total_paginas (int): Número total de páginas en el documento
+        batch_size (int): Número de páginas a procesar por lote. Por defecto es 10.
+            Para documentos muy grandes, usar un valor menor puede ayudar con la memoria.
+        max_workers (int, optional): Número máximo de workers para procesamiento paralelo.
+            Si no se especifica, se usa min(32, os.cpu_count() + 4).
             
     Returns:
         fitz.Document: Un nuevo documento con todas las páginas redimensionadas
@@ -158,45 +274,86 @@ def process_pdf(doc, centrar=False, progress_callback=None):
         logger.error("El documento PDF no contiene páginas")
         raise ValueError("El documento PDF no contiene páginas")
     
+    # Determinar número óptimo de workers si no se especifica
+    if max_workers is None:
+        max_workers = min(32, multiprocessing.cpu_count() + 4)
+    
     logger.info(f"Iniciando procesamiento de documento con {len(doc)} páginas")
     logger.info(f"Modo de centrado: {'activado' if centrar else 'desactivado'}")
+    logger.info(f"Estado del caché - Hits: {_cache_hits}, Misses: {_cache_misses}, Tamaño: {len(_page_cache)}")
+    logger.info(f"Configuración de paralelización - Workers: {max_workers}, Tamaño de lote: {batch_size}")
     
     # Crear un nuevo documento para almacenar las páginas redimensionadas
     new_doc_final = fitz.open()
 
-    # Procesar cada página del documento original
+    # Procesar páginas en lotes para optimizar memoria
     num_paginas = len(doc)
-    tiempo_inicio_pagina = time.time()
+    tiempo_inicio_lote = time.time()
+    paginas_procesadas = 0
     
-    for i in range(num_paginas):
-        # Reportar progreso
-        if progress_callback:
-            progress_callback(i + 1, num_paginas)
+    # Calcular número de lotes
+    num_lotes = (num_paginas + batch_size - 1) // batch_size
+    
+    for lote in range(num_lotes):
+        inicio_lote = lote * batch_size
+        fin_lote = min(inicio_lote + batch_size, num_paginas)
+        
+        logger.info(f"Procesando lote {lote + 1}/{num_lotes} (páginas {inicio_lote + 1}-{fin_lote})")
+        
+        # Preparar argumentos para procesamiento paralelo
+        paginas_lote = [(doc[i], centrar, i) for i in range(inicio_lote, fin_lote)]
+        
+        # Procesar páginas en paralelo
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Enviar trabajos
+            futures = {
+                executor.submit(_process_page_parallel, args): args[2]  # args[2] es el índice
+                for args in paginas_lote
+            }
             
-        # Obtener la página actual
-        pagina = doc[i]
+            # Recolectar resultados ordenados
+            resultados: List[Tuple[int, fitz.Document]] = []
+            
+            for future in as_completed(futures):
+                idx = futures[future]
+                try:
+                    resultado = future.result()
+                    resultados.append(resultado)
+                    paginas_procesadas += 1
+                    
+                    # Reportar progreso
+                    if progress_callback:
+                        progress_callback(paginas_procesadas, num_paginas)
+                    
+                    # Calcular y mostrar estadísticas de tiempo
+                    tiempo_actual = time.time()
+                    tiempo_promedio = (tiempo_actual - inicio_total) / paginas_procesadas
+                    tiempo_estimado = tiempo_promedio * (num_paginas - paginas_procesadas)
+                    
+                    logger.info(f"Progreso: {paginas_procesadas}/{num_paginas} páginas ({(paginas_procesadas/num_paginas)*100:.1f}%)")
+                    logger.debug(f"Tiempo promedio: {tiempo_promedio:.2f}s, Estimado restante: {tiempo_estimado:.2f}s")
+                    
+                except Exception as e:
+                    logger.error(f"Error procesando página {idx + 1}: {str(e)}")
+                    raise
+            
+            # Ordenar resultados por índice
+            resultados.sort(key=lambda x: x[0])
+            
+            # Añadir páginas al documento final en orden
+            for _, temp_doc in resultados:
+                new_doc_final.insert_pdf(temp_doc)
+                temp_doc.close()
         
-        # Redimensionar la página
-        temp_doc = resize_pdf_page(pagina, centrar)
+        # Forzar recolección de basura al final de cada lote
+        import gc
+        gc.collect()
         
-        # Añadir la página redimensionada al documento final
-        new_doc_final.insert_pdf(temp_doc)
-        
-        # Cerrar el documento temporal
-        temp_doc.close()
-        
-        # Calcular y mostrar estadísticas de tiempo
-        tiempo_pagina = time.time() - tiempo_inicio_pagina
-        tiempo_promedio = (time.time() - inicio_total) / (i + 1)
-        tiempo_estimado = tiempo_promedio * (num_paginas - (i + 1))
-        
-        logger.info(f"Progreso: {i + 1}/{num_paginas} páginas ({((i + 1)/num_paginas)*100:.1f}%)")
-        logger.debug(f"Tiempo página actual: {tiempo_pagina:.2f}s, Promedio: {tiempo_promedio:.2f}s, Estimado restante: {tiempo_estimado:.2f}s")
-        
-        tiempo_inicio_pagina = time.time()
+        tiempo_inicio_lote = time.time()
 
     tiempo_total = time.time() - inicio_total
     logger.info(f"Procesamiento completado en {tiempo_total:.2f} segundos")
     logger.info(f"Tiempo promedio por página: {tiempo_total/num_paginas:.2f} segundos")
-
+    logger.info(f"Estadísticas finales del caché - Hits: {_cache_hits}, Misses: {_cache_misses}, Ratio: {_cache_hits/(_cache_hits + _cache_misses):.2%}")
+    
     return new_doc_final
