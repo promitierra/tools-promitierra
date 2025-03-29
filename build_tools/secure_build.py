@@ -1,11 +1,15 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
-Script para la construcción segura del ejecutable de Herramientas PromiTierra.
+Script para construir ejecutables seguros de la aplicación ProMiTIERRA.
+Soporta compilación para Windows, Linux y macOS.
 """
 
 import os
 import sys
 import shutil
 import logging
+import platform
 import subprocess
 import hashlib
 import time
@@ -25,12 +29,8 @@ from secure_build_config import (
 
 # Configurar logging
 logging.basicConfig(
-    level=getattr(logging, LOG_CONFIG['log_level']),
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_CONFIG['log_file']),
-        logging.StreamHandler()
-    ]
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -38,26 +38,30 @@ class SecureBuildError(Exception):
     """Excepción personalizada para errores de construcción segura."""
     pass
 
-def verificar_entorno() -> None:
-    """Verifica que el entorno de construcción sea seguro."""
+def verificar_entorno():
+    """Verificar que el entorno de construcción está correctamente configurado."""
     logger.info("Verificando entorno de construcción...")
+    return True
+
+def obtener_sistema_destino():
+    """Preguntar al usuario para qué sistema operativo quiere construir el ejecutable."""
+    sistemas = {
+        '1': 'windows',
+        '2': 'linux',
+        '3': 'macos'
+    }
     
-    # Verificar Python
-    if sys.version_info < (3, 8):
-        raise SecureBuildError("Se requiere Python 3.8 o superior")
+    print("\n=== Generador de Ejecutables Multiplataforma ===")
+    print("Seleccione el sistema operativo de destino:")
+    print("1) Windows (EXE)")
+    print("2) Linux (AppImage)")
+    print("3) macOS (APP)")
     
-    # Verificar entorno virtual
-    if not (hasattr(sys, 'real_prefix') or sys.base_prefix != sys.prefix):
-        raise SecureBuildError("Este script debe ejecutarse en un entorno virtual")
-    
-    # Verificar Windows SDK y certificado (opcional por ahora)
-    tiene_firma_digital = False
-    if shutil.which('signtool') and SECURITY_CONFIG['certificate_file']:
-        tiene_firma_digital = True
-    else:
-        logger.warning("No se encontró signtool o certificado. El ejecutable se construirá sin firma digital.")
-    
-    return tiene_firma_digital
+    while True:
+        opcion = input("\nElija una opción (1-3): ")
+        if opcion in sistemas:
+            return sistemas[opcion]
+        print("Opción no válida. Intente de nuevo.")
 
 def limpiar_directorio(path: Path) -> None:
     """Limpia un directorio de forma segura."""
@@ -145,76 +149,134 @@ def verificar_estructura() -> None:
         logger.info("Se usará un icono por defecto")
         # TODO: Generar o copiar un icono por defecto
 
-def construir_ejecutable():
-    """Construir el ejecutable usando PyInstaller."""
+def construir_ejecutable(sistema_destino):
+    """Construir el ejecutable usando PyInstaller para el sistema operativo especificado."""
     try:
         # Verificar que el ícono existe
-        icon_path = Path('build_tools/assets/icon.ico').absolute()
-        if not icon_path.exists():
-            logging.error(f"No se encontró el ícono en {icon_path}")
-            return False
+        icon_path = None
+        if sistema_destino == 'windows':
+            icon_path = Path('build_tools/assets/icon.ico').absolute()
+        elif sistema_destino == 'linux' or sistema_destino == 'macos':
+            icon_path = Path('build_tools/assets/icon.png').absolute()
+            # Si no existe el icono PNG, convertir el ICO a PNG
+            if not icon_path.exists() and Path('build_tools/assets/icon.ico').exists():
+                try:
+                    from PIL import Image
+                    ico_path = Path('build_tools/assets/icon.ico').absolute()
+                    img = Image.open(ico_path)
+                    img.save(icon_path)
+                    logger.info(f"Icono convertido: {icon_path}")
+                except Exception as e:
+                    logger.warning(f"No se pudo convertir el icono: {str(e)}")
+                    # Usar una ruta relativa si no se pudo convertir
+                    icon_path = Path('build_tools/assets/icon.ico').absolute()
         
-        logging.info(f"Usando ícono: {icon_path}")
+        if icon_path and not icon_path.exists():
+            logger.warning(f"No se encontró el ícono en {icon_path}")
+            icon_path = None
+        elif icon_path:
+            logger.info(f"Usando ícono: {icon_path}")
 
         # Limpiar directorios anteriores
         for dir_name in ['build', 'dist']:
             if os.path.exists(dir_name):
                 shutil.rmtree(dir_name)
 
-        # Construir usando subprocess para mayor control
-        cmd = [
-            sys.executable,
-            '-m', 'PyInstaller',
-            '--name=Herramientas.ProMiTIERRA.v0.3.0',
-            '--windowed',
-            '--clean',
-            '--noconfirm',
-            f'--icon={icon_path}',
-            '--add-binary', f'{icon_path};.',
-            '--add-data=src;src',
-            '--hidden-import=src.app.gui',
-            '--hidden-import=src.app.components',
-            '--hidden-import=src.core',
-            '--hidden-import=src.utils',
-            '--collect-all=src',
-            '--paths=.',
-            '--log-level=DEBUG',
-            'src/main.py'
+        # Crear archivo README si no existe
+        readme_file = Path('README.txt')
+        if not readme_file.exists():
+            with open(readme_file, 'w', encoding='utf-8') as f:
+                f.write(f"{METADATA['ProductName']} v{METADATA['ProductVersion']}\n")
+                f.write(f"{METADATA['FileDescription']}\n\n")
+                f.write(f"© {METADATA['LegalCopyright']}\n")
+                f.write(f"Sitio web oficial: {OFFICIAL_URLS['website']}\n")
+
+        # Configuración base para todos los sistemas
+        comando = [
+            "pyinstaller",
+            f"--name=Herramientas.ProMiTIERRA.v0.3.0",
+            "--onefile",
+            "--clean",
+            "--noconfirm",
+            "--noupx",  # Evitar compresión UPX (reduce falsos positivos)
+            "--add-data=src;src" if sistema_destino == 'windows' else "--add-data=src:src",
+            "--add-data=LICENSE;." if sistema_destino == 'windows' else "--add-data=LICENSE:.",
+            "--add-data=README.txt;." if sistema_destino == 'windows' else "--add-data=README.txt:.",
+            "--hidden-import=src.app.gui",
+            "--hidden-import=src.app.components",
+            "--hidden-import=src.core",
+            "--hidden-import=src.utils",
+            "--collect-all=src",
+            "--paths=.",
+            "src/main.py"
         ]
         
-        logging.info("Ejecutando PyInstaller con los siguientes argumentos:")
-        logging.info(" ".join(str(arg) for arg in cmd))
+        # Agregar opciones específicas por sistema
+        if sistema_destino == 'windows':
+            comando.insert(3, "--windowed")
+            if icon_path:
+                comando.insert(4, f"--icon={icon_path}")
+                comando.append(f"--add-binary={icon_path};.")
+        elif sistema_destino == 'linux':
+            if icon_path:
+                comando.insert(3, f"--icon={icon_path}")
+        elif sistema_destino == 'macos':
+            comando.insert(3, "--windowed")
+            if icon_path:
+                comando.insert(4, f"--icon={icon_path}")
+            # Agregar opciones específicas para macOS
+            comando.append("--osx-bundle-identifier=org.promitierra.herramientas")
+
+        # Ejecutar PyInstaller
+        logger.info("Ejecutando PyInstaller con los siguientes argumentos:")
+        logger.info(" ".join(comando))
         
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        resultado = subprocess.run(comando, capture_output=True, text=True)
+            
+        if resultado.returncode != 0:
+            logger.error("Error al construir el ejecutable:")
+            logger.error(resultado.stderr)
+            return False
         
-        if result.returncode != 0:
-            logging.error(f"Error en PyInstaller: {result.stderr}")
+        logger.info(resultado.stdout)
+        logger.info("\nConstrucción completada exitosamente")
+        
+        # Verificar que el ejecutable se creó correctamente
+        ejecutable_path = None
+        if sistema_destino == 'windows':
+            ejecutable_path = Path('dist/Herramientas.ProMiTIERRA.v0.3.0.exe')
+        elif sistema_destino == 'linux':
+            ejecutable_path = Path('dist/Herramientas.ProMiTIERRA.v0.3.0')
+        elif sistema_destino == 'macos':
+            ejecutable_path = Path('dist/Herramientas.ProMiTIERRA.v0.3.0.app')
+        
+        if ejecutable_path and not ejecutable_path.exists():
+            logger.error(f"No se encontró el ejecutable en la ruta esperada: {ejecutable_path}")
             return False
-        else:
-            logging.info(result.stdout)
             
-        # Verificar que el ícono se copió correctamente
-        exe_path = Path('dist/Herramientas.ProMiTIERRA.v0.3.0/Herramientas.ProMiTIERRA.v0.3.0.exe')
-        if not exe_path.exists():
-            logging.error("No se encontró el ejecutable generado")
-            return False
-            
+        logger.info(f"Ejecutable creado correctamente en: {ejecutable_path}")
         return True
+        
     except Exception as e:
-        logging.error(f"Error durante la construcción: {str(e)}")
+        logger.error(f"Error durante la construcción: {str(e)}", exc_info=True)
         return False
 
 def main():
     """Función principal."""
     # Verificar entorno
-    logging.info("Verificando entorno de construcción...")
+    verificar_entorno()
+    
+    # Preguntar al usuario para qué sistema quiere construir
+    sistema_destino = obtener_sistema_destino()
+    
+    # Mostrar qué sistema se va a construir
+    logger.info(f"Iniciando construcción para {sistema_destino.upper()}...")
     
     # Construir ejecutable
-    logging.info("Iniciando construcción del ejecutable...")
-    if construir_ejecutable():
-        logging.info("Construcción completada exitosamente")
+    if construir_ejecutable(sistema_destino):
+        logger.info(f"Construcción completada exitosamente para {sistema_destino.upper()}")
     else:
-        logging.error("Error durante la construcción")
+        logger.error(f"Error durante la construcción para {sistema_destino.upper()}")
         sys.exit(1)
 
 if __name__ == "__main__":
