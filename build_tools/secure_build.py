@@ -47,18 +47,20 @@ def obtener_sistema_destino():
     """Preguntar al usuario para qué sistema operativo quiere construir el ejecutable."""
     sistemas = {
         '1': 'windows',
-        '2': 'linux',
-        '3': 'macos'
+        # Comentamos las opciones para Linux y macOS
+        # '2': 'linux',
+        # '3': 'macos'
     }
     
     print("\n=== Generador de Ejecutables Multiplataforma ===")
     print("Seleccione el sistema operativo de destino:")
     print("1) Windows (EXE)")
-    print("2) Linux (AppImage)")
-    print("3) macOS (APP)")
+    # Comentamos las opciones para Linux y macOS
+    # print("2) Linux (AppImage)")
+    # print("3) macOS (APP)")
     
     while True:
-        opcion = input("\nElija una opción (1-3): ")
+        opcion = input("\nElija una opción (1): ")
         if opcion in sistemas:
             return sistemas[opcion]
         print("Opción no válida. Intente de nuevo.")
@@ -156,20 +158,21 @@ def construir_ejecutable(sistema_destino):
         icon_path = None
         if sistema_destino == 'windows':
             icon_path = Path('build_tools/assets/icon.ico').absolute()
-        elif sistema_destino == 'linux' or sistema_destino == 'macos':
-            icon_path = Path('build_tools/assets/icon.png').absolute()
-            # Si no existe el icono PNG, convertir el ICO a PNG
-            if not icon_path.exists() and Path('build_tools/assets/icon.ico').exists():
-                try:
-                    from PIL import Image
-                    ico_path = Path('build_tools/assets/icon.ico').absolute()
-                    img = Image.open(ico_path)
-                    img.save(icon_path)
-                    logger.info(f"Icono convertido: {icon_path}")
-                except Exception as e:
-                    logger.warning(f"No se pudo convertir el icono: {str(e)}")
-                    # Usar una ruta relativa si no se pudo convertir
-                    icon_path = Path('build_tools/assets/icon.ico').absolute()
+        # Comentamos el código para Linux y macOS
+        # elif sistema_destino == 'linux' or sistema_destino == 'macos':
+        #     icon_path = Path('build_tools/assets/icon.png').absolute()
+        #     # Si no existe el icono PNG, convertir el ICO a PNG
+        #     if not icon_path.exists() and Path('build_tools/assets/icon.ico').exists():
+        #         try:
+        #             from PIL import Image
+        #             ico_path = Path('build_tools/assets/icon.ico').absolute()
+        #             img = Image.open(ico_path)
+        #             img.save(icon_path)
+        #             logger.info(f"Icono convertido: {icon_path}")
+        #         except Exception as e:
+        #             logger.warning(f"No se pudo convertir el icono: {str(e)}")
+        #             # Usar una ruta relativa si no se pudo convertir
+        #             icon_path = Path('build_tools/assets/icon.ico').absolute()
         
         if icon_path and not icon_path.exists():
             logger.warning(f"No se encontró el ícono en {icon_path}")
@@ -177,10 +180,38 @@ def construir_ejecutable(sistema_destino):
         elif icon_path:
             logger.info(f"Usando ícono: {icon_path}")
 
-        # Limpiar directorios anteriores
-        for dir_name in ['build', 'dist']:
-            if os.path.exists(dir_name):
-                shutil.rmtree(dir_name)
+        # Limpiar solo directorios específicos para el sistema operativo seleccionado
+        # Siempre limpiar 'build'
+        if os.path.exists('build'):
+            logger.info("Limpiando directorio 'build'")
+            shutil.rmtree('build')
+            
+        # Para 'dist', solo eliminar los archivos del sistema operativo seleccionado
+        if os.path.exists('dist'):
+            if sistema_destino == 'windows':
+                # Eliminar solo archivos .exe
+                for archivo in Path('dist').glob('*.exe'):
+                    logger.info(f"Eliminando ejecutable anterior de Windows: {archivo}")
+                    os.remove(archivo)
+            # Comentamos el código para Linux y macOS
+            # elif sistema_destino == 'linux':
+            #     # En Linux, el problema es que no podemos usar una simple expresión glob
+            #     # ya que los ejecutables no tienen una extensión específica
+            #     for archivo in Path('dist').iterdir():
+            #         # Verificar si el archivo corresponde a un ejecutable de Linux
+            #         # (no tiene extensión y es un archivo, no un directorio)
+            #         if archivo.is_file() and not archivo.suffix and 'Herramientas' in archivo.name:
+            #             logger.info(f"Eliminando ejecutable anterior de Linux: {archivo}")
+            #             os.remove(archivo)
+            # elif sistema_destino == 'macos':
+            #     # Eliminar solo los paquetes .app de macOS
+            #     for archivo in Path('dist').glob('*.app'):
+            #         logger.info(f"Eliminando ejecutable anterior de macOS: {archivo}")
+            #         shutil.rmtree(archivo)
+        else:
+            # Si no existe el directorio 'dist', crearlo
+            os.makedirs('dist', exist_ok=True)
+            logger.info("Creado directorio 'dist'")
 
         # Crear archivo README si no existe
         readme_file = Path('README.txt')
@@ -194,14 +225,16 @@ def construir_ejecutable(sistema_destino):
         # Configuración base para todos los sistemas
         comando = [
             "pyinstaller",
-            f"--name=Herramientas.ProMiTIERRA.v0.3.0",
+            # Nombre específico para Windows (comentamos la parte condicional)
+            f"--name=Herramientas.ProMiTIERRA.v0.3.0", # if sistema_destino == 'windows' else f"--name=Herramientas_ProMiTIERRA",
             "--onefile",
             "--clean",
             "--noconfirm",
             "--noupx",  # Evitar compresión UPX (reduce falsos positivos)
-            "--add-data=src;src" if sistema_destino == 'windows' else "--add-data=src:src",
-            "--add-data=LICENSE;." if sistema_destino == 'windows' else "--add-data=LICENSE:.",
-            "--add-data=README.txt;." if sistema_destino == 'windows' else "--add-data=README.txt:.",
+            # Usar formato Windows para las rutas (comentamos la parte condicional)
+            "--add-data=src;src", # if sistema_destino == 'windows' else "--add-data=src:src",
+            "--add-data=LICENSE;.", # if sistema_destino == 'windows' else "--add-data=LICENSE:.",
+            "--add-data=README.txt;.", # if sistema_destino == 'windows' else "--add-data=README.txt:.",
             "--hidden-import=src.app.gui",
             "--hidden-import=src.app.components",
             "--hidden-import=src.core",
@@ -211,21 +244,23 @@ def construir_ejecutable(sistema_destino):
             "src/main.py"
         ]
         
-        # Agregar opciones específicas por sistema
-        if sistema_destino == 'windows':
-            comando.insert(3, "--windowed")
-            if icon_path:
-                comando.insert(4, f"--icon={icon_path}")
-                comando.append(f"--add-binary={icon_path};.")
-        elif sistema_destino == 'linux':
-            if icon_path:
-                comando.insert(3, f"--icon={icon_path}")
-        elif sistema_destino == 'macos':
-            comando.insert(3, "--windowed")
-            if icon_path:
-                comando.insert(4, f"--icon={icon_path}")
-            # Agregar opciones específicas para macOS
-            comando.append("--osx-bundle-identifier=org.promitierra.herramientas")
+        # Agregar opciones específicas para Windows
+        # (comentamos la parte condicional y el código para Linux y macOS)
+        # if sistema_destino == 'windows':
+        comando.insert(3, "--windowed")
+        if icon_path:
+            comando.insert(4, f"--icon={icon_path}")
+            comando.append(f"--add-binary={icon_path};.")
+        # elif sistema_destino == 'linux':
+        #     # Forzar un nombre de archivo sin extensión para Linux
+        #     if icon_path:
+        #         comando.insert(3, f"--icon={icon_path}")
+        # elif sistema_destino == 'macos':
+        #     comando.insert(3, "--windowed")
+        #     if icon_path:
+        #         comando.insert(4, f"--icon={icon_path}")
+        #     # Agregar opciones específicas para macOS
+        #     comando.append("--osx-bundle-identifier=org.promitierra.herramientas")
 
         # Ejecutar PyInstaller
         logger.info("Ejecutando PyInstaller con los siguientes argumentos:")
@@ -245,14 +280,40 @@ def construir_ejecutable(sistema_destino):
         ejecutable_path = None
         if sistema_destino == 'windows':
             ejecutable_path = Path('dist/Herramientas.ProMiTIERRA.v0.3.0.exe')
-        elif sistema_destino == 'linux':
-            ejecutable_path = Path('dist/Herramientas.ProMiTIERRA.v0.3.0')
-        elif sistema_destino == 'macos':
-            ejecutable_path = Path('dist/Herramientas.ProMiTIERRA.v0.3.0.app')
+        # Comentamos el código para Linux y macOS
+        # elif sistema_destino == 'linux':
+        #     ejecutable_path = Path('dist/Herramientas_ProMiTIERRA')
+        # elif sistema_destino == 'macos':
+        #     ejecutable_path = Path('dist/Herramientas_ProMiTIERRA.app')
         
         if ejecutable_path and not ejecutable_path.exists():
-            logger.error(f"No se encontró el ejecutable en la ruta esperada: {ejecutable_path}")
-            return False
+            # Comentamos el código para sistemas Unix
+            # En sistemas Unix comprobar con separadores de ruta adecuados
+            # alt_path = None
+            # if sistema_destino == 'linux':
+            #     alt_path = Path('dist/Herramientas_ProMiTIERRA')
+            # 
+            # if alt_path and alt_path.exists():
+            #     ejecutable_path = alt_path
+            #     logger.info(f"Ejecutable encontrado en ruta alternativa: {ejecutable_path}")
+            # else:
+            # Listar archivos en el directorio dist para diagnóstico
+            try:
+                dist_files = list(Path('dist').glob('*'))
+                if dist_files:
+                    logger.info(f"Archivos encontrados en dist: {[str(f) for f in dist_files]}")
+                    # Si hay un archivo ejecutable, usar ese
+                    # for file in dist_files:
+                    #     if sistema_destino == 'linux' and not file.is_dir():
+                    #         ejecutable_path = file
+                    #         logger.info(f"Usando ejecutable encontrado: {ejecutable_path}")
+                    #         break
+            except Exception as e:
+                logger.error(f"Error al listar archivos en dist: {str(e)}")
+            
+            if not ejecutable_path or not ejecutable_path.exists():
+                logger.error(f"No se encontró el ejecutable en la ruta esperada: {ejecutable_path}")
+                return False
             
         logger.info(f"Ejecutable creado correctamente en: {ejecutable_path}")
         return True
@@ -266,8 +327,10 @@ def main():
     # Verificar entorno
     verificar_entorno()
     
-    # Preguntar al usuario para qué sistema quiere construir
-    sistema_destino = obtener_sistema_destino()
+    # Establecemos directamente Windows como sistema destino
+    # Comentamos la línea que pregunta al usuario
+    # sistema_destino = obtener_sistema_destino()
+    sistema_destino = 'windows'
     
     # Mostrar qué sistema se va a construir
     logger.info(f"Iniciando construcción para {sistema_destino.upper()}...")
