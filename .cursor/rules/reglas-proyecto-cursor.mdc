@@ -1,0 +1,94 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+  ---
+description: Reglas generales para el proyecto Herramientas PromiTierra que definen convenciones, estructura y buenas prácticas
+globs: ["**/*.py", "**/*.pyw"]
+alwaysApply: true
+---
+
+# Reglas del Proyecto Herramientas PromiTierra
+  
+  Eres un experto en programación de aplicaciones con Python.
+  
+## Principios Clave:
+- Utiliza nombres de variables descriptivos que reflejen el contenido de los datos.
+- Sigue las pautas de estilo PEP 8 para el código en Python.
+- Usa control de versiones (por ejemplo, git y github cli) para rastrear cambios en notebooks y scripts.
+- Usar `uv pip install` para instalar nuevas dependencias y gestionar el proyecto.
+- Ulitiza siempre el Entorno virtual del proyecto, cuando agregues nuevas dependencias, actualizar `requirements.txt` y actualizar también el entorno virtual.
+
+
+## Entorno de Desarrollo
+- **Entorno Virtual**: Asegúrate de tener activado el entorno virtual para todas las operaciones
+- **Gestor de Paquetes**: Usa `uv` para gestionar el proyecto y sus dependencias
+- La carpeta `venv/` contiene el entorno virtual aislado para el proyecto
+
+## Estructura del Proyecto
+- `src/` - Código fuente principal
+  - `app/` - Interfaz de usuario y componentes de aplicación
+  - `core/` - Funcionalidades principales y lógica de negocio
+  - `utils/` - Funciones de utilidad y helpers
+  - `gui/` - Componentes adicionales de la interfaz gráfica
+- `tests/` - Pruebas unitarias e integración
+- `docs/` - Documentación del proyecto
+- `build_tools/` - Herramientas para compilación y distribución
+- `main.py` - Punto de entrada de la aplicación
+
+## Dependencias Principales
+- **CustomTkinter** - Biblioteca para interfaces gráficas modernas @customtkinter-best-practices
+- **Pillow** - Procesamiento de imágenes @pillow-best-practices
+- **PyPDF2** - Manipulación de archivos PDF @pypdf2-best-practices
+- **pandas/openpyxl** - Procesamiento de archivos Excel @pandas-openpyxl-best-practices
+- **pathlib** - Manejo de rutas con API orientada a objetos @pathlib-best-practices
+
+## Convenciones de Código
+1. **Idioma**: Todo el código y comentarios deben estar en español.
+2. **Estilo de Nombres**:
+   - **Clases**: PascalCase (ej. `ImagenAPdfGUI`)
+   - **Funciones y variables**: snake_case (ej. `crear_widgets`, `modo_comprimido`)
+   - **Constantes**: UPPERCASE_WITH_UNDERSCORES (ej. `EXTENSIONES_SOPORTADAS`)
+
+3. **Docstrings**: Usar docstrings en español para todas las clases y funciones.
+   - Cada función debe incluir un docstring que explique su propósito, parámetros y valor de retorno
+
+4. **Manejo de Errores**: Implementar try/except para operaciones propensas a errores, especialmente E/S de archivos.
+
+## Componentes Principales
+- `PDFConverter` - Convierte imágenes a PDFs, mantiene estructura de directorios
+- `ImagenAPdfGUI` - Interfaz gráfica principal con pestañas para diferentes herramientas
+- `PDFResizer` - Redimensiona PDFs a tamaño carta
+- `FolderCreator` - Crea estructura de carpetas desde archivos Excel
+- `PDFToPNGConverter` - Convierte archivos PDF a imágenes PNG
+
+## Patrones de Diseño
+1. **Callbacks**: Para reportar progreso y resultados asíncronos
+2. **Ejecución Asíncrona**: Usar ThreadPoolExecutor para operaciones en paralelo
+3. **Abstracción de GUI**: Separación entre lógica de negocio y presentación
+
+## Reglas Específicas
+1. Siempre usar rutas relativas con pathlib para mayor compatibilidad
+2. Mantener estructura de directorios al procesar archivos
+3. Implementar manejo de progreso para operaciones largas
+4. Proporcionar feedback visual al usuario durante operaciones
+5. Mantener interfaces consistentes entre las diferentes herramientas
+
+
+## Comentarios
+- Los comentarios de código deben estar en español
+- Explicar lógica compleja o soluciones no evidentes
+- Documentar parámetros y valores de retorno en funciones importantes
+
+## Pruebas
+- Implementar pruebas unitarias para funcionalidades core
+- Incluir casos de borde y manejo de errores en las pruebas
+- Las pruebas deben poder ejecutarse independientemente
+
+## Construcción y Empaquetado
+- Usar PyInstaller para generar ejecutables independientes
+- Mantener el tamaño del ejecutable optimizado
+- Proporcionar versión estándar y portable
+
+

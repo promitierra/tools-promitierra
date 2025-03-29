@@ -36,11 +36,9 @@ class ProgressDialog(ctk.CTkToplevel):
         )
         self.progress_label.grid(row=0, column=0, padx=10, pady=5)
         
-        # Progress bar
-        self.progress_var = tk.DoubleVar()
-        self.progress_bar = ctk.CTkProgressBar(self)
-        self.progress_bar.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
-        self.progress_bar.set(0)
+        # Progress bar component
+        self.progress_component = ProgressBarComponent(self)
+        self.progress_component.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
         
         # Cancel button
         self.cancel_btn = ctk.CTkButton(
@@ -53,7 +51,7 @@ class ProgressDialog(ctk.CTkToplevel):
     def update_progress(self, current: int, total: int):
         """Update progress bar and label."""
         progress = current / total if total > 0 else 0
-        self.progress_bar.set(progress)
+        self.progress_component.update_progress(progress, f"Procesando archivo {current} de {total}...")
         self.progress_label.configure(
             text=f"Procesando archivo {current} de {total}..."
         )

@@ -1,0 +1,12 @@
+---
+description: 
+globs: **/*.py
+alwaysApply: false
+---
+
+# Best practices for Excel file processing with pandas and openpyxl
+
+- Use pandas for data manipulation and openpyxl for more complex Excel operations
+- Implement proper error handling when reading/writing Excel files
+- Optimize performance by using appropriate data types and efficient operations
+- Consider using pandas' built-in functions for common data transformations

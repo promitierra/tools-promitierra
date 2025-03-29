@@ -1,0 +1,12 @@
+---
+description: Best practices for image processing with Pillow
+globs: 
+alwaysApply: false
+---
+
+# Best practices for image processing with Pillow
+
+- Use context managers when opening images to ensure proper resource management
+- Optimize image processing operations by using appropriate image modes
+- Implement error handling for common image-related exceptions
+- Use Pillow's built-in methods for common image transformations

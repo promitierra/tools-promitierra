@@ -11,6 +11,7 @@ from datetime import datetime
 
 from ..core.image_processor import ImageProcessor
 from ..core.text_normalizer import TextNormalizer
+from .components import AppTitle, AppFooter, ProgressBarComponent, FileSelector
 
 class MainWindow(ctk.CTk):
     """Main application window."""
@@ -40,9 +41,13 @@ class MainWindow(ctk.CTk):
         
     def _create_widgets(self):
         """Create and configure GUI widgets."""
+        # Main container frame
+        main_container = ctk.CTkFrame(self)
+        main_container.pack(pady=(20, 5), padx=20, fill="both", expand=True)
+        
         # Create tab view
-        self.notebook = ctk.CTkTabview(self)
-        self.notebook.pack(pady=20, padx=20, fill="both", expand=True)
+        self.notebook = ctk.CTkTabview(main_container)
+        self.notebook.pack(pady=(10, 10), padx=10, fill="both", expand=True)
         
         # Add tabs in desired order
         self.tab_folders = self.notebook.add("Crear Carpetas")
@@ -52,6 +57,10 @@ class MainWindow(ctk.CTk):
         self._create_folders_tab()
         self._create_convert_tab()
         
+        # Create global footer outside the main_container but inside the main window
+        self.footer = AppFooter(self)
+        self.footer.pack(pady=(0, 10), padx=20, fill="x")
+        
     def _create_folders_tab(self):
         """Create content for folders tab."""
         # Main frame with minimal padding
@@ -59,8 +68,7 @@ class MainWindow(ctk.CTk):
         frame.pack(pady=10, padx=10, fill="both", expand=True)
         
         # Title
-        titulo = ctk.CTkLabel(frame, text="Creación Masiva de Carpetas", 
-                            font=ctk.CTkFont(size=20, weight="bold"))
+        titulo = AppTitle(frame, text="Creación Masiva de Carpetas")
         titulo.pack(pady=5)
 
         # Description
@@ -109,9 +117,6 @@ class MainWindow(ctk.CTk):
         self.folders_details_text = ctk.CTkTextbox(frame, height=100)
         self.folders_details_text.pack(fill="x", padx=10, pady=(5,10))
         self.folders_details_text.configure(state="disabled")
-
-        # Add footer
-        self._create_footer(frame)
         
     def _create_convert_tab(self):
         """Create content for convert tab."""
@@ -120,8 +125,7 @@ class MainWindow(ctk.CTk):
         frame.pack(pady=10, padx=10, fill="both", expand=True)
 
         # Title
-        titulo = ctk.CTkLabel(frame, text="Conversor de Imágenes a PDF", 
-                            font=ctk.CTkFont(size=20, weight="bold"))
+        titulo = AppTitle(frame, text="Conversor de Imágenes a PDF")
         titulo.pack(pady=5)
 
         # Compress checkbox
@@ -134,22 +138,18 @@ class MainWindow(ctk.CTk):
         )
         self.cb_compress.pack(pady=10)
 
-        # Select folder button
-        self.btn_select = ctk.CTkButton(
+        # Select folder button using FileSelector component
+        self.file_selector = FileSelector(
             frame,
-            text="📁 Seleccionar Carpeta de Imágenes",
+            button_text="Seleccionar Carpeta de Imágenes",
+            select_folder=True,
             command=self._select_folder
         )
-        self.btn_select.pack(pady=10)
+        self.file_selector.pack(pady=10)
 
-        # Progress bar
-        self.progress_bar = ctk.CTkProgressBar(frame)
-        self.progress_bar.pack(fill="x", padx=10, pady=5)
-        self.progress_bar.set(0)
-
-        # Progress label
-        self.progress_label = ctk.CTkLabel(frame, text="0%")
-        self.progress_label.pack(pady=5)
+        # Progress bar component
+        self.progress_component = ProgressBarComponent(frame)
+        self.progress_component.pack(fill="x", padx=10, pady=5)
 
         # Status label
         self.status_label = ctk.CTkLabel(
@@ -159,50 +159,13 @@ class MainWindow(ctk.CTk):
         )
         self.status_label.pack(pady=5)
 
-        # Details area
-        self.details_text = ctk.CTkTextbox(frame, height=75)
-        self.details_text.pack(fill="x", padx=10, pady=(5,10))
+        # Area de Detalles
+        self.details_text = ctk.CTkTextbox(frame, height=200)
+        self.details_text.pack(fill="x", padx=10, pady=(10,10)) #revisar cambios
         self.details_text.configure(state="disabled")
 
-        # Add footer
-        self._create_footer(frame)
-        
-    def _create_footer(self, parent_frame):
-        """Create footer with credits."""
-        # Internal frame for credits
-        credits_internal = ctk.CTkFrame(parent_frame, fg_color="transparent")
-        credits_internal.pack(side="bottom", fill="x", pady=(10, 3))
-
-        # First line: Developer and year
-        credits_line1 = ctk.CTkLabel(
-            credits_internal,
-            text="Desarrollado por: Luis Fernando Moreno Montoya | 2024",
-            font=ctk.CTkFont(size=13),
-            text_color="#CCCCCC"
-        )
-        credits_line1.pack(pady=(10, 3))
-        
-        # Second line: Special message (split for heart color)
-        message_frame = ctk.CTkFrame(credits_internal, fg_color="transparent")
-        message_frame.pack(pady=(3, 10))
-
-        # First part of message
-        part1 = ctk.CTkLabel(
-            message_frame,
-            text="Hecho con ",
-            font=ctk.CTkFont(size=13),
-            text_color="#CCCCCC"
-        )
-        part1.pack(side="left")
-
-        # Red heart
-        heart = ctk.CTkLabel(
-            message_frame,
-            text="♥",
-            font=ctk.CTkFont(size=13),
-            text_color="#FF0000"
-        )
-        heart.pack(side="left")
+        # Configure frame padding
+        frame.pack_configure(pady=(0,10))
         
     def _download_template(self):
         """Handle template download."""
@@ -312,7 +275,7 @@ class MainWindow(ctk.CTk):
         """Handle folder selection for image conversion."""
         if self.procesando:
             self.procesando = False
-            self.btn_select.configure(text="📁 Seleccionar Carpeta de Imágenes")
+            self.file_selector.button.configure(text="📁 Seleccionar Carpeta de Imágenes")
             return
             
         directory = filedialog.askdirectory(

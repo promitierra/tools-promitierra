@@ -1,0 +1,12 @@
+---
+description: Best practices for building modern GUIs with CustomTkinter
+globs: 
+alwaysApply: false
+---
+
+# Best practices for building modern GUIs with CustomTkinter
+
+- Use consistent theming across your application
+- Implement responsive layouts using grid or pack managers
+- Utilize custom widgets for reusable UI components
+- Handle events and callbacks efficiently for better performance
