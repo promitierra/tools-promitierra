@@ -16,6 +16,8 @@ from ..utils.helpers import (
     validar_directorio
 )
 import threading
+import logging
+from io import StringIO
 
 class HelpModal(ctk.CTkToplevel):
     """Ventana modal para mostrar ayuda"""
@@ -141,10 +143,10 @@ Esta herramienta ajusta PDFs al tamaño carta estándar (8.5" x 11").
 3. Elige el archivo PDF a redimensionar
 4. Selecciona dónde guardar el PDF redimensionado
 """,
-            "pdf_png": """
-# Ayuda - Convertir PDF a PNG
+            "imagen_pdf_a_png": """
+# Ayuda - Convertir imágenes en archivos PDF a PNG
 
-Esta herramienta convierte archivos PDF a imágenes PNG.
+Esta herramienta convierte imágenes en archivos PDF a imágenes PNG.
 
 ## Características:
 - Convierte PDFs individuales o carpetas completas
@@ -383,18 +385,18 @@ Para una carpeta:
         """Crear el contenido de la pestaña de conversión de PDF a PNG"""
         elementos = self.crear_tab_base(
             self.tab_pdf_a_png,
-            "Convertir PDF a PNG",
+            "Convertir imágenes en archivos PDF a PNG",
             "Extrae imágenes de archivos PDF y las guarda como PNG",
-            "pdf_png"
+            "imagen_pdf_a_png"
         )
         
         # Botones
-        self.btn_seleccionar_pdf_png = ctk.CTkButton(
+        self.btn_seleccionar_imagen_pdf_a_png = ctk.CTkButton(
             elementos["controles_frame"],
             text="Seleccionar PDF",
             command=self.seleccionar_pdf_para_png
         )
-        self.btn_seleccionar_pdf_png.pack(side="left", padx=5, expand=True)
+        self.btn_seleccionar_imagen_pdf_a_png.pack(side="left", padx=5, expand=True)
         
         self.btn_seleccionar_carpeta_png = ctk.CTkButton(
             elementos["controles_frame"],
@@ -402,6 +404,14 @@ Para una carpeta:
             command=self.seleccionar_carpeta_para_png
         )
         self.btn_seleccionar_carpeta_png.pack(side="left", padx=5, expand=True)
+
+        self.btn_cancelar_png = ctk.CTkButton(
+            elementos["controles_frame"],
+            text="Cancelar",
+            command=self.cancelar_conversion_png,
+            state="disabled"
+        )
+        self.btn_cancelar_png.pack(side="left", padx=5, expand=True)
         
         # Guardar referencias
         self.barra_progreso_png = elementos["barra_progreso"]
@@ -610,14 +620,6 @@ Para una carpeta:
                     "error"
                 )
                 
-            def on_error(self, error):
-                self.errors.append(error)
-                agregar_detalle(
-                    self.gui.detalles,
-                    f"Error: {error}",
-                    "error"
-                )
-                
             def on_progress(self, valor):
                 actualizar_progreso(self.gui.barra_progreso, valor)
                 
@@ -705,6 +707,8 @@ Para una carpeta:
     
     def redimensionar_pdf(self, input_pdf, output_pdf, centrar):
         """Redimensionar PDF a tamaño carta"""
+        log_stream = StringIO()
+        handler = None
         try:
             agregar_detalle(
                 self.detalles_resize,
@@ -713,6 +717,14 @@ Para una carpeta:
             
             # Actualizar progreso
             self.barra_progreso_resize.set(0.2)
+            
+            # Configurar el logger para capturar mensajes
+            logger = logging.getLogger('src.core.pdf_resizer')
+            handler = logging.StreamHandler(log_stream)
+            handler.setLevel(logging.INFO)
+            formatter = logging.Formatter('%(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
             
             # Redimensionar PDF
             resultado = self.pdf_resizer.resize_pdf(input_pdf, output_pdf, centrar)
@@ -726,27 +738,34 @@ Para una carpeta:
                 agregar_detalle(self.detalles_resize, mensaje, "success")
                 messagebox.showinfo("Éxito", mensaje)
             else:
-                mensaje = "Error al redimensionar el PDF"
-                self.lbl_estado_resize.configure(text=mensaje)
-                agregar_detalle(self.detalles_resize, mensaje, "error")
-                messagebox.showerror("Error", mensaje)
+                # Obtener el mensaje de error del log
+                error_message = log_stream.getvalue().strip()
+                if not error_message:
+                    error_message = "Error desconocido al redimensionar el PDF"
+                
+                self.lbl_estado_resize.configure(text="Error al redimensionar el PDF")
+                agregar_detalle(self.detalles_resize, error_message, "error")
+                messagebox.showerror("Error", error_message)
                 
         except Exception as e:
-            mensaje = f"Error: {str(e)}"
+            mensaje = f"Error inesperado: {str(e)}"
             self.lbl_estado_resize.configure(text="Error en el proceso")
             agregar_detalle(self.detalles_resize, mensaje, "error")
             messagebox.showerror("Error", mensaje)
         finally:
+            # Limpiar el handler del logger
+            if handler:
+                logger.removeHandler(handler)
+                handler.close()
+            log_stream.close()
+            
             self.btn_seleccionar_pdf.configure(state="normal")
             self.procesando = False
     
     def seleccionar_pdf_para_png(self):
-        """Seleccionar archivo PDF para convertir a PNG"""
+        """Seleccionar archivo PDF para convertir sus imágenes a PNG"""
         if self.procesando:
-            messagebox.showwarning(
-                "Procesando", 
-                "Ya hay un proceso en ejecución. Por favor espere."
-            )
+            self.cancelar_conversion_png()
             return
             
         # Seleccionar archivo PDF
@@ -759,8 +778,9 @@ Para una carpeta:
             return
             
         self.procesando = True
-        self.btn_seleccionar_pdf_png.configure(state="disabled")
+        self.btn_seleccionar_imagen_pdf_a_png.configure(state="disabled")
         self.btn_seleccionar_carpeta_png.configure(state="disabled")
+        self.btn_cancelar_png.configure(state="normal")
         self.barra_progreso_png.set(0)
         self.lbl_estado_png.configure(text="Convirtiendo PDF a PNG...")
         self.detalles_png.delete("1.0", "end")
@@ -774,10 +794,7 @@ Para una carpeta:
     def seleccionar_carpeta_para_png(self):
         """Seleccionar carpeta con PDFs para convertir a PNG"""
         if self.procesando:
-            messagebox.showwarning(
-                "Procesando", 
-                "Ya hay un proceso en ejecución. Por favor espere."
-            )
+            self.cancelar_conversion_png()
             return
             
         # Seleccionar carpeta
@@ -794,8 +811,9 @@ Para una carpeta:
             return
             
         self.procesando = True
-        self.btn_seleccionar_pdf_png.configure(state="disabled")
+        self.btn_seleccionar_imagen_pdf_a_png.configure(state="disabled")
         self.btn_seleccionar_carpeta_png.configure(state="disabled")
+        self.btn_cancelar_png.configure(state="normal")
         self.barra_progreso_png.set(0)
         self.lbl_estado_png.configure(text="Buscando archivos PDF...")
         self.detalles_png.delete("1.0", "end")
@@ -806,9 +824,21 @@ Para una carpeta:
             args=(directorio,)
         ).start()
     
+    def cancelar_conversion_png(self):
+        """Cancelar el proceso de conversión de PDF a PNG"""
+        self.procesando = False
+        self.btn_seleccionar_imagen_pdf_a_png.configure(state="normal")
+        self.btn_seleccionar_carpeta_png.configure(state="normal")
+        self.btn_cancelar_png.configure(state="disabled")
+        self.lbl_estado_png.configure(text="Proceso cancelado")
+        agregar_detalle(self.detalles_png, "Proceso cancelado por el usuario", "warning")
+    
     def convertir_pdf_a_png(self, pdf_path):
-        """Convertir un archivo PDF a PNG"""
+        """Convertir imágenes en archivos PDF a formatoPNG"""
         try:
+            if not self.procesando:  # Verificar si se canceló el proceso
+                return
+                
             agregar_detalle(
                 self.detalles_png,
                 f"Convirtiendo: {os.path.basename(pdf_path)}"
@@ -817,7 +847,7 @@ Para una carpeta:
             # Actualizar progreso
             self.barra_progreso_png.set(0.2)
             
-            # Convertir PDF a PNG
+            # Convertir Imágenes en documentos PDF a PNG
             resultado = self.pdf_to_png_converter.convert_pdf_to_png(pdf_path)
             
             # Actualizar progreso
@@ -829,7 +859,7 @@ Para una carpeta:
                 agregar_detalle(self.detalles_png, mensaje, "success")
                 messagebox.showinfo("Éxito", mensaje)
             else:
-                mensaje = "Error al convertir el PDF"
+                mensaje = "Error al convertir las imagenes del PDF"
                 self.lbl_estado_png.configure(text=mensaje)
                 agregar_detalle(self.detalles_png, mensaje, "error")
                 messagebox.showerror("Error", mensaje)
@@ -840,13 +870,17 @@ Para una carpeta:
             agregar_detalle(self.detalles_png, mensaje, "error")
             messagebox.showerror("Error", mensaje)
         finally:
-            self.btn_seleccionar_pdf_png.configure(state="normal")
+            self.btn_seleccionar_imagen_pdf_a_png.configure(state="normal")
             self.btn_seleccionar_carpeta_png.configure(state="normal")
+            self.btn_cancelar_png.configure(state="disabled")
             self.procesando = False
     
     def convertir_carpeta_pdf_a_png(self, directorio):
-        """Convertir todos los PDFs de una carpeta a PNG"""
+        """Convertir todas imágenes en archivosPDFs de una carpeta a PNG"""
         try:
+            if not self.procesando:  # Verificar si se canceló el proceso
+                return
+                
             # Buscar archivos PDF
             pdf_files = self.pdf_to_png_converter.find_pdf_files(directorio)
             total_files = len(pdf_files)
@@ -860,7 +894,7 @@ Para una carpeta:
                 
             agregar_detalle(
                 self.detalles_png,
-                f"Encontrados {total_files} archivos PDF para convertir"
+                f"Encontrados {total_files} archivos PDF para convertir sus imagenes a PNG"
             )
             
             # Convertir cada archivo
@@ -869,7 +903,12 @@ Para una carpeta:
             
             for i, pdf_path in enumerate(pdf_files):
                 if not self.procesando:  # Verificar si se canceló el proceso
-                    break
+                    agregar_detalle(
+                        self.detalles_png,
+                        f"Proceso cancelado después de procesar {i} archivos",
+                        "warning"
+                    )
+                    return
                     
                 agregar_detalle(
                     self.detalles_png,
@@ -879,7 +918,7 @@ Para una carpeta:
                 # Actualizar progreso
                 self.barra_progreso_png.set((i+1) / total_files)
                 
-                # Convertir PDF a PNG
+                # Convertir imagenes en archivos PDF a PNG
                 try:
                     if self.pdf_to_png_converter.convert_pdf_to_png(pdf_path):
                         successful += 1
@@ -903,14 +942,15 @@ Para una carpeta:
                         "error"
                     )
             
-            # Mostrar resumen
-            mensaje = f"Proceso completado. Convertidos {successful} de {total_files} archivos"
-            if failed > 0:
-                mensaje += f" ({failed} errores)"
-                
-            self.lbl_estado_png.configure(text=mensaje)
-            agregar_detalle(self.detalles_png, mensaje, "success")
-            messagebox.showinfo("Proceso completado", mensaje)
+            if self.procesando:  # Solo mostrar resumen si no fue cancelado
+                # Mostrar resumen
+                mensaje = f"Proceso completado. Convertidos {successful} de {total_files} archivos"
+                if failed > 0:
+                    mensaje += f" ({failed} errores)"
+                    
+                self.lbl_estado_png.configure(text=mensaje)
+                agregar_detalle(self.detalles_png, mensaje, "success")
+                messagebox.showinfo("Proceso completado", mensaje)
                 
         except Exception as e:
             mensaje = f"Error: {str(e)}"
@@ -918,8 +958,9 @@ Para una carpeta:
             agregar_detalle(self.detalles_png, mensaje, "error")
             messagebox.showerror("Error", mensaje)
         finally:
-            self.btn_seleccionar_pdf_png.configure(state="normal")
+            self.btn_seleccionar_imagen_pdf_a_png.configure(state="normal")
             self.btn_seleccionar_carpeta_png.configure(state="normal")
+            self.btn_cancelar_png.configure(state="disabled")
             self.procesando = False
     
     def iniciar(self):

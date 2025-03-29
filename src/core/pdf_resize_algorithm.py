@@ -47,27 +47,32 @@ _cache_lock = threading.Lock()  # Lock para acceso al caché
 # Cola para resultados ordenados
 _result_queue = queue.PriorityQueue()
 
-def _get_page_hash(page: fitz.Page, centrar: bool) -> str:
+def _get_page_hash(page, centrar):
     """
     Genera un hash único para una página basado en su contenido y configuración.
     
     Args:
-        page (fitz.Page): La página a hashear
-        centrar (bool): Si el contenido está centrado
+        page (fitz.Page): La página del PDF
+        centrar (bool): Si el contenido debe centrarse
         
     Returns:
-        str: Hash único de la página
+        str: Hash único que identifica la página y su configuración
     """
-    # Obtener el contenido de la página como bytes
-    content = page.get_text("rawdict").encode()
-    
-    # Crear un hash que incluya el contenido y la configuración
-    hasher = hashlib.sha256()
-    hasher.update(content)
-    hasher.update(str(centrar).encode())
-    hasher.update(str(page.rect).encode())
-    
-    return hasher.hexdigest()
+    try:
+        # Obtener el contenido como diccionario y convertirlo a string
+        content_dict = page.get_text("rawdict")
+        content_str = str(content_dict)
+        
+        # Crear una cadena que combine el contenido y la configuración
+        combined_content = f"{content_str}_{centrar}_{page.rect.width}_{page.rect.height}"
+        
+        # Generar y retornar el hash
+        return hashlib.md5(combined_content.encode('utf-8')).hexdigest()
+    except Exception as e:
+        logger.warning(f"Error al generar hash de página: {str(e)}")
+        # En caso de error, generar un hash basado en dimensiones y número de página
+        fallback_content = f"page_{page.number}_{page.rect.width}_{page.rect.height}_{centrar}"
+        return hashlib.md5(fallback_content.encode('utf-8')).hexdigest()
 
 def _get_from_cache(page_hash: str) -> Optional[fitz.Document]:
     """
@@ -89,7 +94,10 @@ def _get_from_cache(page_hash: str) -> Optional[fitz.Document]:
             if time.time() - timestamp <= 1800:
                 _cache_hits += 1
                 logger.debug(f"Cache hit! Hits: {_cache_hits}, Misses: {_cache_misses}")
-                return doc.copy()  # Devolver una copia para evitar modificaciones
+                # Crear una nueva copia del documento
+                new_doc = fitz.open()
+                new_doc.insert_pdf(doc)
+                return new_doc
         
         _cache_misses += 1
         logger.debug(f"Cache miss! Hits: {_cache_hits}, Misses: {_cache_misses}")
@@ -108,10 +116,14 @@ def _add_to_cache(page_hash: str, doc: fitz.Document):
         # Si el caché está lleno, eliminar la entrada más antigua
         if len(_page_cache) >= _max_cache_size:
             oldest_key = min(_page_cache.keys(), key=lambda k: _page_cache[k][1])
+            old_doc, _ = _page_cache[oldest_key]
+            old_doc.close()
             del _page_cache[oldest_key]
         
-        # Añadir nueva entrada
-        _page_cache[page_hash] = (doc.copy(), time.time())  # Guardar una copia y el timestamp
+        # Crear una nueva copia del documento para el caché
+        cached_doc = fitz.open()
+        cached_doc.insert_pdf(doc)
+        _page_cache[page_hash] = (cached_doc, time.time())
 
 def _process_page_parallel(args: Tuple[fitz.Page, bool, int]) -> Tuple[int, fitz.Document]:
     """
@@ -238,7 +250,13 @@ def resize_pdf_page(page, centrar=False):
     
     # Añadir al caché antes de retornar
     _add_to_cache(page_hash, temp_doc)
-    return temp_doc.copy()  # Retornar una copia para evitar modificaciones
+    
+    # Crear una nueva copia para retornar
+    result_doc = fitz.open()
+    result_doc.insert_pdf(temp_doc)
+    temp_doc.close()
+    
+    return result_doc
 
 def process_pdf(doc, centrar=False, progress_callback=None, batch_size=10, max_workers=None):
     """

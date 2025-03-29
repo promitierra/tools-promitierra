@@ -1,18 +1,18 @@
 """
-Main entry point for the PDF converter application.
+Main entry point for the ProMiTIERRA Tools application.
 """
 import sys
 from pathlib import Path
 
 # Add src directory to Python path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 
-from src.gui import MainWindow
+from src.app.gui import ImagenAPdfGUI
 
 def main():
-    """Application entry point."""
-    app = MainWindow()
-    app.mainloop()
+    """Punto de entrada principal de la aplicación"""
+    app = ImagenAPdfGUI()
+    app.iniciar()
 
 if __name__ == "__main__":
     main()

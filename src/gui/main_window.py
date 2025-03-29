@@ -9,9 +9,9 @@ import threading
 import pandas as pd
 from datetime import datetime
 
-from ..core.image_processor import ImageProcessor
-from ..core.text_normalizer import TextNormalizer
-from .components import AppTitle, AppFooter, ProgressBarComponent, FileSelector
+from src.core.image_processor import ImageProcessor
+from src.core.text_normalizer import TextNormalizer
+from src.gui.components import AppTitle, AppFooter, ProgressBarComponent, FileSelector
 
 class MainWindow(ctk.CTk):
     """Main application window."""

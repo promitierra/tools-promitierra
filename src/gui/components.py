@@ -1,4 +1,4 @@
-\"""Componentes reutilizables para la interfaz gráfica.
+"""Componentes reutilizables para la interfaz gráfica.
 
 Este módulo contiene componentes de UI reutilizables para mantener
 la consistencia visual en toda la aplicación.
