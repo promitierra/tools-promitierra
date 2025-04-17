@@ -1,0 +1,211 @@
+"""
+Script para generar PDFs a partir de imágenes con características específicas.
+
+Este script toma un directorio de imágenes y genera un PDF con todas ellas,
+asegurando que estén en orientación horizontal, con márgenes exactos de 1 cm
+en todos los lados, centradas correctamente y con numeración de página opcional.
+
+Creado para Fundación ProMITIERRA - Herramientas de procesamiento documental.
+
+Uso:
+    python generar_pdf_imagenes.py [directorio] [--output RUTA] [--debug] [--no-page-numbers]
+
+Argumentos:
+    directorio:          Ruta al directorio con las imágenes a procesar
+    --output, -o:        Ruta de salida del PDF (opcional)
+    --debug, -d:         Muestra información adicional durante la ejecución
+    --no-page-numbers:   No incluir números de página en el documento
+
+Ejemplos:
+    python generar_pdf_imagenes.py "C:/Directorio/Imagenes"
+    python generar_pdf_imagenes.py "C:/Directorio/Imagenes" --no-page-numbers
+    python generar_pdf_imagenes.py "C:/Directorio/Imagenes" -o "C:/Salida/resultado.pdf"
+"""
+
+import os
+from pathlib import Path
+import sys
+import logging
+from PIL import Image
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import cm
+from reportlab.lib.colors import black, gray
+import argparse
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Agregar el directorio raíz del proyecto al path
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root))
+
+def generar_pdf_con_imagenes(directorio_imagenes: str, ruta_salida: str, debug: bool = False, incluir_numeros_pagina: bool = True):
+    """
+    Genera un PDF con todas las imágenes del directorio, garantizando:
+    - Orientación siempre horizontal (landscape)
+    - Márgenes exactos de 1cm en todos los lados
+    - Imágenes ajustadas al máximo tamaño posible respetando márgenes
+    - Número de página en la esquina externa inferior (opcional)
+    
+    Args:
+        directorio_imagenes (str): Ruta al directorio que contiene las imágenes
+        ruta_salida (str): Ruta donde se guardará el PDF generado
+        debug (bool, opcional): Activa el modo debug para información adicional
+        incluir_numeros_pagina (bool, opcional): Indica si se deben incluir números de página
+    
+    Returns:
+        None: El PDF se guarda en la ruta especificada
+    
+    Raises:
+        Exception: Si hay errores al procesar imágenes o generar el PDF
+    """
+    # Configurar tamaño de página y márgenes
+    margen = 1 * cm  # 1 centímetro exacto
+    ancho_pagina, alto_pagina = landscape(letter)  # Forzar orientación horizontal
+    
+    # Calcular área disponible para la imagen
+    ancho_disponible = ancho_pagina - (2 * margen)
+    alto_disponible = alto_pagina - (2 * margen)
+    
+    # Crear el PDF
+    c = canvas.Canvas(ruta_salida, pagesize=landscape(letter))
+    
+    # Obtener lista de imágenes y ordenarlas
+    imagenes = []
+    for ext in ['.png', '.jpg', '.jpeg']:
+        imagenes.extend(Path(directorio_imagenes).glob(f'*{ext}'))
+    imagenes = sorted(imagenes, key=lambda x: x.name)
+    
+    # Procesar cada imagen
+    for num_pagina, ruta_imagen in enumerate(imagenes, 1):
+        try:
+            # Abrir y procesar la imagen
+            with Image.open(ruta_imagen) as img:
+                # Convertir a RGB si es necesario
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                
+                # Obtener dimensiones originales
+                ancho_orig, alto_orig = img.size
+                
+                # Rotar la imagen si está en vertical
+                if alto_orig > ancho_orig:
+                    img = img.rotate(-90, expand=True)
+                    ancho_orig, alto_orig = img.size
+                
+                # Calcular el factor de escala para ajustar la imagen al área disponible
+                escala_ancho = ancho_disponible / ancho_orig
+                escala_alto = alto_disponible / alto_orig
+                escala = min(escala_ancho, escala_alto)
+                
+                # Calcular nuevas dimensiones
+                nuevo_ancho = int(ancho_orig * escala)
+                nuevo_alto = int(alto_orig * escala)
+                
+                # Redimensionar la imagen
+                img = img.resize((nuevo_ancho, nuevo_alto), Image.Resampling.LANCZOS)
+                
+                # Calcular posición para centrado exacto
+                x = margen + (ancho_disponible - nuevo_ancho) / 2
+                y = margen + (alto_disponible - nuevo_alto) / 2
+                
+                # Guardar la imagen temporalmente
+                temp_img_path = f"temp_img_{num_pagina}.jpg"
+                img.save(temp_img_path, format='JPEG', quality=95)
+                
+                # Dibujar la imagen
+                c.drawImage(temp_img_path, x, y, width=nuevo_ancho, height=nuevo_alto, preserveAspectRatio=True)
+                
+                # Agregar número de página si está habilitado
+                if incluir_numeros_pagina:
+                    c.setFont("Helvetica", 10)
+                    c.drawString(ancho_pagina - margen - 20, margen - 15, str(num_pagina))
+                
+                # Eliminar archivo temporal
+                os.remove(temp_img_path)
+                
+                # Nueva página
+                c.showPage()
+                
+                logger.info(f"Procesada imagen {num_pagina} de {len(imagenes)}: {ruta_imagen.name}")
+                
+        except Exception as e:
+            logger.error(f"Error procesando {ruta_imagen.name}: {str(e)}")
+            raise
+    
+    # Guardar el PDF
+    try:
+        c.save()
+        logger.info(f"PDF generado exitosamente: {ruta_salida}")
+    except Exception as e:
+        logger.error(f"Error al guardar el PDF: {str(e)}")
+        raise
+
+def main():
+    """
+    Función principal que procesa los argumentos de línea de comandos
+    y llama a la función de generación de PDF.
+    
+    Args:
+        None: Los argumentos se toman de sys.argv
+        
+    Returns:
+        None
+    """
+    # Configurar el parser de argumentos
+    parser = argparse.ArgumentParser(description='Genera un PDF a partir de imágenes en un directorio.')
+    parser.add_argument('directorio', help='Directorio que contiene las imágenes')
+    parser.add_argument('--output', '-o', help='Ruta de salida del PDF (opcional)')
+    parser.add_argument('--debug', '-d', action='store_true', help='Activa el modo debug')
+    parser.add_argument('--no-page-numbers', action='store_true', help='No incluir números de página en el documento')
+    
+    args = parser.parse_args()
+    
+    # Verificar que el directorio existe
+    if not os.path.isdir(args.directorio):
+        logger.error(f"El directorio {args.directorio} no existe")
+        sys.exit(1)
+    
+    # Si no se especifica una ruta de salida, usar el nombre del directorio
+    if args.output:
+        ruta_salida_base = args.output
+    else:
+        nombre_directorio = os.path.basename(os.path.normpath(args.directorio))
+        ruta_salida_base = os.path.join(args.directorio, f"CONSOLIDADO_{nombre_directorio}")
+
+    # Asegurar que el nombre base no tenga extensión .pdf para el chequeo
+    if ruta_salida_base.lower().endswith(".pdf"):
+        ruta_salida_sin_ext = ruta_salida_base[:-4]
+    else:
+        ruta_salida_sin_ext = ruta_salida_base
+        
+    ruta_salida = f"{ruta_salida_sin_ext}.pdf"
+    contador = 1
+    while os.path.exists(ruta_salida):
+        ruta_salida = f"{ruta_salida_sin_ext} ({contador}).pdf"
+        contador += 1
+    
+    # Generar el PDF
+    generar_pdf_con_imagenes(
+        args.directorio,
+        ruta_salida,
+        debug=args.debug,
+        incluir_numeros_pagina=not args.no_page_numbers
+    )
+    
+    # Triple verificación final
+    logger.info("Realizando verificación final...")
+    try:
+        with open(ruta_salida, 'rb') as f:
+            assert f.readable(), "El PDF no se puede leer"
+            contenido = f.read()
+            assert len(contenido) > 0, "El PDF está vacío"
+            logger.info("Verificación final completada: PDF generado correctamente")
+    except Exception as e:
+        logger.error(f"Error en la verificación final: {str(e)}")
+        raise
+
+if __name__ == "__main__":
+    main() 
