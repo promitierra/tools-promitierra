@@ -1,11 +1,17 @@
+"""Utilidades generales del proyecto."""
+
+from .file_operations import FileRenamer
 from .helpers import (
-    agregar_detalle,
-    actualizar_progreso,
-    generar_nombre_zip,
-    validar_directorio
+    get_project_root,
+    get_version,
+    get_app_name,
+    get_app_description
 )
 
-from .file_operations import (
-    rename_file,
-    rename_file_with_callback
-)
+__all__ = [
+    'FileRenamer',
+    'get_project_root',
+    'get_version',
+    'get_app_name',
+    'get_app_description'
+]

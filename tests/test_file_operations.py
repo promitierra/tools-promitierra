@@ -1,147 +1,199 @@
 import os
+import re
 import pytest
 import tempfile
 from pathlib import Path
 
-from src.utils.file_operations import rename_file, rename_file_with_callback
+from src.utils.file_operations import FileRenamer
+from src.utils.callbacks import RenameCallbacks
 
 
-class TestFileOperations:
+class TestFileRenamer:
     
     def setup_method(self):
-        # Crear un archivo temporal para las pruebas
+        # Crear una estructura de carpetas y archivos temporales para las pruebas
         self.temp_dir = tempfile.TemporaryDirectory()
-        self.test_file_path = os.path.join(self.temp_dir.name, "test_file.txt")
         
-        # Crear el archivo de prueba
-        with open(self.test_file_path, "w") as f:
-            f.write("Contenido de prueba")
+        # Crear estructura de carpetas
+        self.subfolder1 = os.path.join(self.temp_dir.name, "subfolder1")
+        self.subfolder2 = os.path.join(self.temp_dir.name, "subfolder2")
+        os.makedirs(self.subfolder1, exist_ok=True)
+        os.makedirs(self.subfolder2, exist_ok=True)
+        
+        # Crear archivos de prueba en la carpeta principal
+        self.test_file1 = os.path.join(self.temp_dir.name, "test_file1.txt")
+        self.test_file2 = os.path.join(self.temp_dir.name, "test_file2.txt")
+        self.test_file3 = os.path.join(self.temp_dir.name, "already_correct.txt")
+        
+        # Crear archivos de prueba en las subcarpetas
+        self.test_file_sub1 = os.path.join(self.subfolder1, "subfile1.txt")
+        self.test_file_sub2 = os.path.join(self.subfolder2, "subfile2.txt")
+        self.test_file_sub3 = os.path.join(self.subfolder2, "already_correct_sub.txt")
+        
+        # Escribir contenido en los archivos
+        for file_path in [self.test_file1, self.test_file2, self.test_file3,
+                         self.test_file_sub1, self.test_file_sub2, self.test_file_sub3]:
+            with open(file_path, "w") as f:
+                f.write(f"Contenido de prueba para {os.path.basename(file_path)}")
+        
+        # Inicializar el renombrador
+        self.renamer = FileRenamer()
     
     def teardown_method(self):
         # Limpiar archivos temporales
         self.temp_dir.cleanup()
     
-    def test_rename_file_success(self):
-        # Probar renombrar archivo correctamente
-        new_name = "archivo_renombrado.txt"
-        success, message = rename_file(self.test_file_path, new_name)
+    def test_validate_filename(self):
+        # Probar validación de nombres de archivo
         
-        # Verificar que la operación fue exitosa
-        assert success is True
-        assert "correctamente" in message
+        # Caso 1: Nombre válido alfanumérico
+        assert self.renamer.validate_filename("test-file_123.txt")[0] is True
         
-        # Verificar que el archivo original ya no existe
-        assert not os.path.exists(self.test_file_path)
+        # Caso 2: Nombre inválido con caracteres especiales
+        assert self.renamer.validate_filename("test/file*.txt")[0] is False
         
-        # Verificar que el nuevo archivo existe
-        new_path = os.path.join(self.temp_dir.name, new_name)
-        assert os.path.exists(new_path)
+        # Caso 3: Nombre válido solo letras
+        assert self.renamer.validate_filename("TestFile.txt", "solo_letras")[0] is True
+        
+        # Caso 4: Nombre inválido para solo letras
+        assert self.renamer.validate_filename("test123.txt", "solo_letras")[0] is False
+        
+        # Caso 5: Patrón de validación inexistente
+        assert self.renamer.validate_filename("test.txt", "patron_inexistente")[0] is False
     
-    def test_rename_file_keep_extension(self):
-        # Probar renombrar archivo manteniendo la extensión
-        new_name = "archivo_renombrado"
-        success, message = rename_file(self.test_file_path, new_name, keep_extension=True)
+    def test_add_validation_pattern(self):
+        # Probar agregar nuevos patrones de validación
         
-        # Verificar que la operación fue exitosa
-        assert success is True
+        # Caso 1: Agregar patrón válido
+        assert self.renamer.add_validation_pattern("custom", r"^[A-Z]+$") is True
         
-        # Verificar que el nuevo archivo existe con la extensión correcta
-        new_path = os.path.join(self.temp_dir.name, f"{new_name}.txt")
-        assert os.path.exists(new_path)
+        # Caso 2: Intentar agregar patrón que ya existe
+        assert self.renamer.add_validation_pattern("alfanumerico", r"^[a-z]+$") is False
+        
+        # Caso 3: Intentar agregar patrón inválido
+        assert self.renamer.add_validation_pattern("invalid", r"[") is False
     
-    def test_rename_file_change_extension(self):
-        # Probar renombrar archivo cambiando la extensión
-        new_name = "archivo_renombrado.md"
-        success, message = rename_file(self.test_file_path, new_name, keep_extension=False)
+    def test_preview_changes(self):
+        # Probar vista previa de cambios
         
-        # Verificar que la operación fue exitosa
-        assert success is True
+        def pattern_func(filename):
+            return f"preview_{filename}"
         
-        # Verificar que el nuevo archivo existe con la nueva extensión
-        new_path = os.path.join(self.temp_dir.name, new_name)
-        assert os.path.exists(new_path)
+        changes = self.renamer.preview_changes(self.temp_dir.name, pattern_func)
+        
+        # Verificar que se detectaron los cambios correctamente
+        assert len(changes) > 0
+        assert any(old.endswith("test_file1.txt") for old, _ in changes)
+        assert all(new.startswith(os.path.join(os.path.dirname(old), "preview_"))
+                  for old, new in changes)
     
-    def test_rename_nonexistent_file(self):
-        # Probar renombrar un archivo que no existe
-        nonexistent_path = os.path.join(self.temp_dir.name, "no_existe.txt")
-        success, message = rename_file(nonexistent_path, "nuevo_nombre.txt")
+    def test_rename_file(self):
+        # Probar renombrado de archivo individual
         
-        # Verificar que la operación falló
+        # Caso 1: Renombrado exitoso
+        success, _ = self.renamer.rename_file(self.test_file1, "renamed_file.txt")
+        assert success is True
+        assert os.path.exists(os.path.join(self.temp_dir.name, "renamed_file.txt"))
+        
+        # Caso 2: Archivo no existe
+        success, _ = self.renamer.rename_file(
+            os.path.join(self.temp_dir.name, "nonexistent.txt"),
+            "new_name.txt"
+        )
         assert success is False
-        assert "no existe" in message.lower()
-    
-    def test_rename_to_existing_file(self):
-        # Crear un segundo archivo con el nombre de destino
-        existing_file = os.path.join(self.temp_dir.name, "existing.txt")
-        with open(existing_file, "w") as f:
-            f.write("Este archivo ya existe")
         
-        # Intentar renombrar el archivo de prueba con un nombre que ya existe
-        success, message = rename_file(self.test_file_path, "existing.txt")
-        
-        # Verificar que la operación falló
+        # Caso 3: Nombre inválido
+        success, _ = self.renamer.rename_file(self.test_file2, "invalid/name.txt")
         assert success is False
-        assert "ya existe" in message.lower()
         
-        # Verificar que ambos archivos siguen existiendo
-        assert os.path.exists(self.test_file_path)
-        assert os.path.exists(existing_file)
+        # Caso 4: Mantener extensión
+        success, _ = self.renamer.rename_file(self.test_file3, "new_name", keep_extension=True)
+        assert success is True
+        assert os.path.exists(os.path.join(self.temp_dir.name, "new_name.txt"))
     
-    def test_rename_file_with_callback(self):
-        # Crear un objeto de callback para las pruebas
-        class TestCallbacks:
-            def __init__(self):
-                self.renamed_files = []
-                self.errors = []
-                
-            def on_file_renamed(self, old_name, new_name):
-                self.renamed_files.append((old_name, new_name))
-                
-            def on_file_error(self, file_name, error):
-                self.errors.append((file_name, error))
+    def test_rename_files_batch(self):
+        # Probar renombrado por lotes
         
-        callbacks = TestCallbacks()
-        new_name = "renamed_with_callback.txt"
+        def pattern_func(filename):
+            if "already_correct" in filename:
+                return filename
+            return f"batch_{filename}"
         
-        # Probar renombrar con callbacks
-        success, message = rename_file_with_callback(
-            self.test_file_path, new_name, callbacks=callbacks
+        callbacks = RenameCallbacks()
+        
+        # Caso 1: Renombrado recursivo
+        results = self.renamer.rename_files_batch(
+            self.temp_dir.name,
+            pattern_func,
+            recursive=True,
+            callbacks=callbacks
         )
         
-        # Verificar que la operación fue exitosa
-        assert success is True
+        # Verificar resultados
+        assert len(results) == 3  # carpeta principal + 2 subcarpetas
+        assert os.path.exists(os.path.join(self.temp_dir.name, "batch_test_file1.txt"))
+        assert os.path.exists(os.path.join(self.subfolder1, "batch_subfile1.txt"))
         
-        # Verificar que el callback fue llamado
-        assert len(callbacks.renamed_files) == 1
-        assert callbacks.renamed_files[0][0] == "test_file.txt"
-        assert callbacks.renamed_files[0][1] == new_name
-        assert len(callbacks.errors) == 0
-    
-    def test_rename_file_with_callback_error(self):
-        # Crear un objeto de callback para las pruebas
-        class TestCallbacks:
-            def __init__(self):
-                self.renamed_files = []
-                self.errors = []
-                
-            def on_file_renamed(self, old_name, new_name):
-                self.renamed_files.append((old_name, new_name))
-                
-            def on_file_error(self, file_name, error):
-                self.errors.append((file_name, error))
-        
-        callbacks = TestCallbacks()
-        nonexistent_path = os.path.join(self.temp_dir.name, "no_existe.txt")
-        
-        # Probar renombrar con callbacks un archivo que no existe
-        success, message = rename_file_with_callback(
-            nonexistent_path, "nuevo_nombre.txt", callbacks=callbacks
+        # Caso 2: Solo carpeta principal
+        results = self.renamer.rename_files_batch(
+            self.temp_dir.name,
+            pattern_func,
+            recursive=False
         )
         
-        # Verificar que la operación falló
-        assert success is False
+        assert len(results) == 1  # solo carpeta principal
         
-        # Verificar que el callback de error fue llamado
-        assert len(callbacks.renamed_files) == 0
-        assert len(callbacks.errors) == 1
-        assert callbacks.errors[0][0] == "no_existe.txt"
+        # Caso 3: Carpeta no existe
+        results = self.renamer.rename_files_batch(
+            os.path.join(self.temp_dir.name, "nonexistent"),
+            pattern_func
+        )
+        assert list(results.values())[0][0][0] is False
+    
+    def test_undo_operation(self):
+        # Probar deshacer operación
+        
+        # Realizar algunos renombrados
+        self.renamer.rename_file(self.test_file1, "undo_test1.txt")
+        self.renamer.rename_file(self.test_file2, "undo_test2.txt")
+        
+        # Verificar que los archivos fueron renombrados
+        assert os.path.exists(os.path.join(self.temp_dir.name, "undo_test1.txt"))
+        assert os.path.exists(os.path.join(self.temp_dir.name, "undo_test2.txt"))
+        
+        # Deshacer la operación
+        success, _ = self.renamer.undo_last_operation()
+        assert success is True
+        
+        # Verificar que los archivos volvieron a su nombre original
+        assert os.path.exists(self.test_file1)
+        assert os.path.exists(self.test_file2)
+    
+    def test_callbacks(self):
+        # Probar sistema de callbacks
+        
+        callbacks = RenameCallbacks()
+        
+        def pattern_func(filename):
+            return f"callback_{filename}"
+        
+        # Iniciar proceso por lotes
+        callbacks.on_start_batch(3)
+        
+        # Ejecutar renombrado con callbacks
+        self.renamer.rename_files_batch(
+            self.temp_dir.name,
+            pattern_func,
+            recursive=False,
+            callbacks=callbacks
+        )
+        
+        # Verificar que los callbacks fueron llamados
+        assert len(callbacks.renamed_files) > 0
+        assert callbacks.processed_files > 0
+        
+        # Verificar resumen
+        summary = callbacks.get_summary()
+        assert summary['total_files'] == 3
+        assert summary['renamed_files'] > 0
+        assert 'success_rate' in summary
