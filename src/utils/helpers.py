@@ -1,6 +1,8 @@
 import os
 from datetime import datetime
 import time
+from pathlib import Path
+from typing import Optional
 
 def agregar_detalle(text_widget, mensaje, tipo="info"):
     """Agregar mensaje al widget de detalles"""
@@ -38,3 +40,39 @@ def validar_directorio(directorio):
     if not os.access(directorio, os.R_OK | os.W_OK):
         return False, "No hay permisos suficientes en el directorio"
     return True, ""
+
+def get_project_root() -> Path:
+    """
+    Obtiene la ruta raíz del proyecto.
+    
+    Returns:
+        Path: Ruta absoluta al directorio raíz del proyecto
+    """
+    return Path(__file__).parent.parent.parent
+
+def get_version() -> str:
+    """
+    Obtiene la versión actual del proyecto.
+    
+    Returns:
+        str: Versión del proyecto (ej: '0.3.0')
+    """
+    return "0.3.0"
+
+def get_app_name() -> str:
+    """
+    Obtiene el nombre de la aplicación.
+    
+    Returns:
+        str: Nombre de la aplicación
+    """
+    return "Herramientas ProMiTIERRA"
+
+def get_app_description() -> str:
+    """
+    Obtiene la descripción de la aplicación.
+    
+    Returns:
+        str: Descripción de la aplicación
+    """
+    return "Herramientas para procesamiento de archivos y documentos"
