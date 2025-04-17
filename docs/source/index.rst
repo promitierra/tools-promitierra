@@ -31,6 +31,7 @@ Guías
 
    guides/installation
    guides/usage
+   guides/generar_pdf_imagenes
    guides/development
    guides/performance
 
