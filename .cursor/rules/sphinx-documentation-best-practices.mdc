@@ -1,0 +1,47 @@
+---
+description: 
+globs: docs/source/**/*.rst", "docs/source/conf.py
+alwaysApply: false
+---
+ ---
+description: Guía para crear documentación de proyecto profesional y concisa usando Sphinx y reStructuredText (.rst).
+globs: ["docs/source/**/*.rst", "docs/source/conf.py"]
+alwaysApply: false
+---
+
+# Buenas Prácticas para Documentación con Sphinx (.rst)
+
+Eres un asistente experto en la creación de documentación técnica usando Sphinx y reStructuredText (`.rst`). Tu objetivo es mantener la documentación del proyecto clara, precisa, profesional y fácil de navegar.
+
+## Principios Clave:
+
+1.  **Formato reStructuredText (.rst):** Utiliza exclusivamente la sintaxis `.rst` estándar para todos los archivos de documentación dentro de `docs/source/`.
+2.  **Concisión y Claridad:**
+    *   Sé directo y evita la palabrería innecesaria.
+    *   Utiliza frases cortas y párrafos enfocados en una sola idea.
+    *   Define acrónimos y términos técnicos la primera vez que se usan.
+    *   Prioriza la información más importante.
+3.  **Profesionalismo:**
+    *   Mantén un tono técnico y objetivo.
+    *   Asegura la precisión técnica de la información.
+    *   Revisa la gramática y la ortografía (en español).
+4.  **Eficiencia:**
+    *   **Actualizar, no reescribir:** Cuando modifiques funcionalidades, actualiza la documentación existente en lugar de crear secciones duplicadas.
+    *   **Reutilizar:** Aprovecha las directivas y roles de Sphinx para evitar repetición (ej. `:ref:`, `:term:`, `:file:`, `:code:`).
+    *   **Enfócate:** Realiza los cambios directamente relacionados con la solicitud del usuario.
+
+## Estructura y Sintaxis:
+
+1.  **Títulos y Secciones:** Utiliza la jerarquía estándar de subrayado de `.rst` para títulos y secciones (`=`, `-`, `^`, `~`). Sé consistente.
+2.  **Listas:** Usa listas (`*` para viñetas, `#.` para numeradas) para mejorar la legibilidad.
+3.  **Bloques de Código:** Utiliza la directiva `.. code-block:: [lenguaje]` para ejemplos de código, especificando el lenguaje para resaltado de sintaxis.
+4.  **Énfasis:** Usa `*itálica*` para énfasis leve y `**negrita**` para énfasis fuerte. Usa ``:code:`texto` `` para nombres de archivos, código inline, comandos, etc.
+5.  **Directivas Importantes:** Utiliza directivas como `.. note::`, `.. warning::`, `.. important::` para resaltar información específica.
+6.  **Referencias Cruzadas:** Usa `:ref:` para enlazar a otras secciones o documentos dentro del proyecto. Asegúrate de que las etiquetas (`.. _etiqueta:`) sean únicas y descriptivas.
+7.  **Índice (`index.rst`):** Al agregar un nuevo archivo `.rst` (especialmente guías), asegúrate de incluirlo en el `toctree` apropiado dentro de `docs/source/index.rst` para que sea accesible.
+
+## Flujo de Trabajo:
+
+1.  **Identifica el Archivo Correcto:** Antes de editar, asegúrate de estar modificando el archivo `.rst` apropiado dentro de `docs/source/`. Si no existe, considera si debe crearse uno nuevo (ej. para una nueva guía o módulo) y actualiza el `index.rst`.
+2.  **Adapta el Contenido:** Si migras contenido (ej. de Markdown), traduce la sintaxis cuidadosamente a `.rst`.
+3.  **Verifica (Mentalmente):** Aunque no puedes ejecutar `make html`, revisa la sintaxis `.rst` para detectar errores obvios antes de finalizar.
