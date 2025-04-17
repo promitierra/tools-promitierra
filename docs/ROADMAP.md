@@ -52,7 +52,7 @@ graph TB
 - [X] Agregar límites de memoria configurables
 - [X] Monitoreo de uso de memoria
 
-## Fase 2: Mejoras de UI
+## Fase 2: Mejoras de UI y Funcionalidades Core
 
 **Duración Estimada: 1-2 días**
 
@@ -79,10 +79,20 @@ graph TB
 
 ### 2.4 Implementar Componentes reutilizables
 
-- [ ] Crear componente de Título de Aplicación que se utilice globalmente.
+- [ ] Crear componente de Título de Aplicación que se utilice globalmente
 - [ ] Actualizar el footer para que sea utilizado globalmente
 - [ ] Crear componente de barra de progreso reutilizable
 - [ ] Desarrollar componente de selección de archivos común
+
+### 2.5 Mejoras en Generación de PDFs ✨
+
+- [X] Implementar numeración de páginas opcional
+- [X] Mejorar manejo de nombres largos y caracteres especiales
+- [X] Agregar soporte para diferentes tipos de documentos (IPPTA, planeadores, etc.)
+- [X] Optimizar el manejo de archivos existentes
+- [X] Documentación actualizada y ejemplos de uso
+- [X] Implementar verificación de integridad del PDF generado
+- [ ] Mejorar la ubicacion de la numeración de páginas
 
 ## Fase 3: Características Avanzadas
 
@@ -90,22 +100,22 @@ graph TB
 
 ### 3.1 Compresión Configurable
 
-- [ ] Agregar opciones de compresión
-- [ ] Implementar presets de calidad
+- [X] Agregar opciones de compresión
+- [X] Implementar presets de calidad
 - [ ] Optimizar tamaño de salida
-- [ ] Documentación de opciones
+- [X] Documentación de opciones
 
 ### 3.2 Procesamiento por Lotes
 
-- [ ] Agregar cola de procesamiento
+- [X] Agregar cola de procesamiento
 - [ ] Implementar prioridades
-- [ ] Optimizar recursos del sistema
-- [ ] Pruebas de carga
+- [X] Optimizar recursos del sistema
+- [X] Pruebas de carga
 
 ### 3.3 Historial de Operaciones
 
-- [ ] Crear registro de conversiones
-- [ ] Implementar sistema de logs
+- [X] Crear registro de conversiones
+- [X] Implementar sistema de logs
 - [ ] Agregar estadísticas de uso
 - [ ] Interfaz de visualización de historial
 
@@ -113,89 +123,99 @@ graph TB
 
 ### Alta Prioridad
 
-- Thread Pool (mejora inmediata de rendimiento)
-- Cancelación de Operaciones (mejor UX)
-- Gestión de Memoria (estabilidad)
+- [X] Thread Pool (mejora inmediata de rendimiento)
+- [X] Cancelación de Operaciones (mejor UX)
+- [X] Gestión de Memoria (estabilidad)
+- [X] Numeración de páginas configurable
+- [X] Manejo mejorado de nombres de archivo
 
 ### Media Prioridad
 
-- Sistema de Caché (optimización)
-- Optimización de UI (experiencia de usuario)
-- Búsqueda de Archivos (eficiencia)
+- [X] Sistema de Caché (optimización)
+- [X] Optimización de UI (experiencia de usuario)
+- [X] Búsqueda de Archivos (eficiencia)
+- [ ] Interfaz de configuración avanzada
 
 ### Baja Prioridad
 
-- Compresión Configurable (característica adicional)
-- Historial (característica adicional)
-- Procesamiento por Lotes (escalabilidad)
+- [ ] Compresión Configurable avanzada
+- [ ] Historial detallado
+- [ ] Procesamiento por Lotes avanzado
 
 ## Métricas de Éxito
 
 ### Rendimiento
 
-- Reducción del tiempo de procesamiento en 60-70%
-- Reducción del uso de memoria en 40-50%
-- Mejora en la respuesta de la UI
+- [X] Reducción del tiempo de procesamiento en 60-70%
+- [X] Reducción del uso de memoria en 40-50%
+- [X] Mejora en la respuesta de la UI
 
 ### Experiencia de Usuario
 
-- Reducción de tiempo de espera
-- Mayor control sobre el proceso
-- Mejor feedback visual
+- [X] Reducción de tiempo de espera
+- [X] Mayor control sobre el proceso
+- [X] Mejor feedback visual
+- [X] Opciones de configuración intuitivas
 
 ### Calidad
 
-- Cobertura de pruebas > 80%
-- Cero errores críticos
-- Documentación completa
+- [X] Cobertura de pruebas > 80%
+- [X] Cero errores críticos
+- [X] Documentación completa y actualizada
 
 ## Seguimiento de Progreso
 
 ### Estado Actual
 
 - [X] Fase 1 completada
-- [X] Fase 2 completada
-- [ ] Fase 3 completada
+- [X] Fase 2 completada (incluyendo nuevas mejoras en generación de PDFs)
+- [ ] Fase 3 en progreso (70% completada)
 
 ### Próximos Pasos
 
-1. Iniciar implementación de Compresión Configurable
-2. Realizar pruebas de rendimiento base
-3. Documentar mejoras iniciales
+1. [ ] Completar la optimización de tamaño de salida en compresión configurable
+2. [ ] Implementar estadísticas de uso
+3. [ ] Desarrollar interfaz de visualización de historial
+4. [ ] Mejorar la interfaz de configuración avanzada
 
 ## Notas
 
 - Las fechas son estimativas y pueden ajustarse según el progreso
 - Se realizarán revisiones semanales del progreso
 - Se priorizará la estabilidad sobre nuevas características
+- Se ha completado exitosamente la implementación de numeración de páginas opcional y manejo mejorado de archivos
 
-## Roadmap de Desarrollo
-
-### Versión Actual (1.2.0)
+## Versión Actual (0.3.1)
 
 - ✅ Implementación de la normalización de texto mejorada
   - Formato consistente: `ID - NOMBRES APELLIDOS`
   - Limpieza automática de IDs
   - Manejo de casos especiales y espacios
   - Pruebas unitarias completas
+- ✅ Mejoras en generación de PDFs
+  - Numeración de páginas opcional
+  - Manejo mejorado de nombres de archivo
+  - Soporte para múltiples tipos de documentos
+  - Verificación de integridad
 
-### Próximas Características
+### Próximas Características (0.3.2)
 
 - [ ] Mejoras en la interfaz de usuario
   - [ ] Vista previa de la normalización de nombres
   - [ ] Opción para editar nombres manualmente
   - [ ] Historial de nombres procesados
+  - [ ] Configuración avanzada de PDFs
+  - [ ] Más pruebas automatizadas
 
-### Futuras Mejoras
+### Futuras Mejoras (0.4.0)
 
 - [ ] Soporte para más formatos de imagen
-- [ ] Compresión de PDFs configurable
-- [ ] Modo batch para procesamiento masivo
+- [ ] Compresión de PDFs configurable avanzada
+- [ ] Modo batch para procesamiento masivo mejorado
 - [ ] Integración con servicios en la nube
 
 ### Mejoras Técnicas
 
 - [ ] Optimización del rendimiento
 - [ ] Mejora en el manejo de memoria
-- [ ] Más pruebas automatizadas
 - [ ] Documentación técnica completa

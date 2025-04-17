@@ -15,6 +15,9 @@ tests/output/*
 tests/data/expected/*
 !tests/data/expected/.gitkeep
 
+# Carpetas de Trabajo
+CONSOLIDADO ENTREGA IPPTA's & PLANEADORES/*
+
 # Entornos virtuales
 venv/
 env/

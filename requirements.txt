@@ -5,6 +5,10 @@ customtkinter>=5.2.1  # Modern UI widgets
 pandas>=2.1.4    # Excel file handling
 openpyxl>=3.1.2  # Excel file support
 unidecode>=1.3.7  # Text normalization
+numpy>=1.24.0    # Numerical operations
+opencv-python>=4.8.0  # Image processing
+scikit-image>=0.21.0  # Image quality metrics
+reportlab>=4.1.0  # PDF generation
 # Dependencias principales
 Pillow==10.2.0
 customtkinter==5.2.2
@@ -15,6 +19,7 @@ PyPDF2==3.0.1  # Manipulación de PDFs
 PyMuPDF==1.23.26
 psutil==5.9.8
 matplotlib==3.8.3
+opencv-python==4.8.1.78
 
 # Dependencias de construcción
 pyinstaller==6.12.0
@@ -32,3 +37,4 @@ mypy==1.8.0
 # Dependencias opcionales
 python-dotenv>=1.0.0  # Variables de entorno
 tqdm>=4.66.1  # Barras de progreso
+piexif>=1.1.3  # EXIF metadata handling
