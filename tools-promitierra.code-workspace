@@ -4,8 +4,21 @@
 			"path": "."
 		},
 		{
-			"path": "C:/Users/mmluf/Fundación ProMITIERRA/TERRITORIAL EPSEA AMDELCA-Territorial Zona Sur - Documentos/2_OPERACION/CONSOLIDADO ENGREGA IPPTA´s & PLANEADORES"
+			"name": "Documentos ProMITIERRA",
+			"path": {
+				"windows": "C:/Users/mmluf/Fundación ProMITIERRA/TERRITORIAL EPSEA AMDELCA-Territorial Zona Sur - Documentos/2_OPERACION/CONSOLIDADO ENGREGA IPPTA´s & PLANEADORES",
+				"linux": "/home/mmlufer/Documentos/ProMITIERRA/TERRITORIAL EPSEA AMDELCA-Territorial Zona Sur - Documentos/2_OPERACION/CONSOLIDADO ENGREGA IPPTA´s & PLANEADORES"
+			}
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.exclude": {
+			"**/.git": true,
+			"**/.svn": true,
+			"**/.hg": true,
+			"**/CVS": true,
+			"**/.DS_Store": true,
+			"**/Thumbs.db": true
+		}
+	}
 }
