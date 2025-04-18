@@ -1,19 +1,50 @@
 {
 	"folders": [
 		{
+			"name": "tools-promitierra",
 			"path": "."
 		},
 		{
 			"name": "Work Dir Windows",
+			"path": " "
+		},
+		{
+			"name": "Consolidado Engrega IPPTA´s & Planeadores",
 			"path": "C:/Users/mmluf/Fundación ProMITIERRA/TERRITORIAL EPSEA AMDELCA-Territorial Zona Sur - Documentos/2_OPERACION/CONSOLIDADO ENGREGA IPPTA´s & PLANEADORES"
 		},
 		{
+			"name": "Operación Zona Centro",
+			"path": "C:/Users/mmluf/Fundación ProMITIERRA/TERRITORIAL EPSEA AMDELCA-Territorial Zona Centro - Documentos/2_OPERACION"
+		},
+		{
+			"name": "Operación Zona Norte",
+			"path": "C:/Users/mmluf/Fundación ProMITIERRA/TERRITORIAL EPSEA AMDELCA-Territorial Zona Norte - Documentos/2_OPERACION"
+		},
+		{
+			"name": "Operación Zona Sur",
+			"path": "C:/Users/mmluf/Fundación ProMITIERRA/TERRITORIAL EPSEA AMDELCA-Territorial Zona Sur - Documentos/2_OPERACION"
+		},
+		{
 			"name": "Work Dir Ubuntu",
-			"path": "/home/mmlufer/Documentos/ProMITIERRA"
-			}
+			"path": "../home/mmlufer/Documentos/ProMITIERRA"
 		}
 	],
 	"settings": {
+		// Configuraciones del editor compartidas
+		"editor.formatOnSave": true,
+		"editor.bracketPairColorization.enabled": true,
+		// Configuraciones de archivos
+		"files.trimTrailingWhitespace": true,
+		"files.insertFinalNewline": true,
+		// Configuraciones de terminal
+		"terminal.integrated.defaultProfile.windows": "PowerShell",
+		"terminal.integrated.defaultProfile.linux": "bash",
+		"terminal.integrated.defaultProfile.osx": "zsh",
+		// Configuraciones de Git
+		"git.enableSmartCommit": true,
+		"git.confirmSync": true,
+		"git.autofetch": true,
+		"powershell.cwd": "mmlufer",
 		"files.exclude": {
 			"**/.git": true,
 			"**/.svn": true,
