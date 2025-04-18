@@ -22,9 +22,6 @@ htmlcov/
 
 # Carpetas de Trabajo
 CONSOLIDADO ENTREGA IPPTA's & PLANEADORES/*
-scripts tareas temporales/*
-!scripts tareas temporales/__init__.py
-!scripts tareas temporales/README.md
 
 # Entornos virtuales
 venv/
