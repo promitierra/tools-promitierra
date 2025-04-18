@@ -1,9 +1,9 @@
 ---
 description: 
-globs: docs/source/**/*.rst", "docs/source/conf.py
+globs: "docs/source/**/*.rst", "docs/source/conf.py"
 alwaysApply: false
 ---
- ---
+---
 description: Guía para crear documentación de proyecto profesional y concisa usando Sphinx y reStructuredText (.rst).
 globs: ["docs/source/**/*.rst", "docs/source/conf.py"]
 alwaysApply: false
@@ -44,4 +44,4 @@ Eres un asistente experto en la creación de documentación técnica usando Sphi
 
 1.  **Identifica el Archivo Correcto:** Antes de editar, asegúrate de estar modificando el archivo `.rst` apropiado dentro de `docs/source/`. Si no existe, considera si debe crearse uno nuevo (ej. para una nueva guía o módulo) y actualiza el `index.rst`.
 2.  **Adapta el Contenido:** Si migras contenido (ej. de Markdown), traduce la sintaxis cuidadosamente a `.rst`.
-3.  **Verifica (Mentalmente):** Aunque no puedes ejecutar `make html`, revisa la sintaxis `.rst` para detectar errores obvios antes de finalizar.
+3.  **Verifica (Mentalmente):** Aunque no puedes ejecutar `make html`, revisa la sintaxis `.rst` para detectar errores obvios antes de finalizar. 
