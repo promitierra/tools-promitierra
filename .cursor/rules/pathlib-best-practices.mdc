@@ -1,0 +1,12 @@
+---
+description: Best practices for path manipulation with pathlib
+globs: 
+alwaysApply: false
+---
+
+# Best practices for path manipulation with pathlib
+
+- Use pathlib.Path objects instead of string-based path operations
+- Implement relative paths for better portability across different systems
+- Use pathlib's built-in methods for common file and directory operations
+- Consider using pathlib's glob patterns for efficient file searching

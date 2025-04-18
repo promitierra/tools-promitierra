@@ -1,0 +1,14 @@
+// This example demonstrated an MCP server using the stdio format
+// Cursor automatically runs this process for you
+// This uses a Python server, ran with `python`
+{
+    "mcpServers": {
+      "server-name": {
+        "command": "python",
+        "args": ["mcp-server.py"],
+        "env": {
+          "API_KEY": "value"
+        }
+      }
+    }
+  }

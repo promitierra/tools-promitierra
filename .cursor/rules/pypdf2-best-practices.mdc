@@ -1,0 +1,12 @@
+---
+description: Best practices for PDF manipulation with PyPDF2
+globs: 
+alwaysApply: false
+---
+
+# Best practices for PDF manipulation with PyPDF2
+
+- Use context managers when working with PDF files
+- Implement proper error handling for PDF-related operations
+- Optimize PDF processing by using appropriate methods for specific tasks
+- Consider using PyPDF2's encryption features for secure PDF handling

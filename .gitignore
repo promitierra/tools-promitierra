@@ -15,6 +15,14 @@ tests/output/*
 tests/data/expected/*
 !tests/data/expected/.gitkeep
 
+# Archivos de cobertura
+.coverage
+coverage.xml
+htmlcov/
+
+# Carpetas de Trabajo
+CONSOLIDADO ENTREGA IPPTA's & PLANEADORES/*
+
 # Entornos virtuales
 venv/
 env/
@@ -25,6 +33,7 @@ env/
 .idea/
 *.swp
 *.swo
+.cursor/
 
 # Archivos temporales
 *.tmp
@@ -34,3 +43,13 @@ env/
 # Archivos de sistema
 .DS_Store
 Thumbs.db
+
+# Archivos CustomTkinter generados
+*.sqlite3
+*.ttk
+__tk_cache__/
+
+# Archivos de salida
+*.zip
+output/
+temp/
