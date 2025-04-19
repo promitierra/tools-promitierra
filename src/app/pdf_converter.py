@@ -1,6 +1,4 @@
 import os
-import threading
-from PIL import Image
 import zipfile
 from datetime import datetime
 import tempfile
@@ -8,13 +6,20 @@ import shutil
 import multiprocessing
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from ..utils.helpers import agregar_detalle, actualizar_progreso
+from PIL import Image
+
 
 class PDFConverter:
+    """Clase para convertir imágenes a PDF."""
+    
     # Extensiones de imagen soportadas
-    EXTENSIONES_SOPORTADAS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp', '.gif', '.heic', '.heif'}
+    EXTENSIONES_SOPORTADAS = {
+        '.png', '.jpg', '.jpeg', '.bmp', '.tiff', 
+        '.webp', '.gif', '.heic', '.heif'
+    }
     
     def __init__(self):
+        """Inicializa el convertidor de PDF."""
         self.procesando = False
         self.directorio_salida = None
         self.cancelar = False
@@ -22,12 +27,12 @@ class PDFConverter:
         self.max_workers = min(multiprocessing.cpu_count(), 4)
         
     def es_imagen_valida(self, ruta):
-        """Verifica si un archivo es una imagen válida basado en su extensión"""
+        """Verifica si un archivo es una imagen válida basado en su extensión."""
         return Path(ruta).suffix.lower() in self.EXTENSIONES_SOPORTADAS
     
     def encontrar_imagenes(self, directorio, patron="*"):
         """
-        Encuentra todas las imágenes en el directorio y subdirectorios usando pathlib.
+        Encuentra todas las imágenes en el directorio y subdirectorios.
         
         Args:
             directorio (str): Ruta al directorio a buscar
@@ -76,16 +81,28 @@ class PDFConverter:
             ruta_relativa = ruta_imagen.relative_to(directorio_base)
             
             # Construir la ruta de destino manteniendo la estructura
-            ruta_pdf = directorio_destino / ruta_relativa.parent / f"{ruta_imagen.stem}.pdf"
+            nombre_pdf = f"{ruta_imagen.stem}.pdf"
+            ruta_pdf = directorio_destino / ruta_relativa.parent / nombre_pdf
             
             # Crear directorios intermedios si no existen
             ruta_pdf.parent.mkdir(parents=True, exist_ok=True)
             
+            # Verificar tamaño del archivo antes de procesar
+            tamano_archivo = ruta_imagen.stat().st_size
+            
             # Abrir y convertir imagen
             with Image.open(ruta_imagen) as img:
                 # Optimizar memoria para imágenes grandes
-                if img.size[0] > 2000 or img.size[1] > 2000:
-                    img.thumbnail((2000, 2000), Image.Resampling.LANCZOS)
+                if (tamano_archivo > 5_000_000 or 
+                        img.size[0] > 3000 or img.size[1] > 3000):
+                    # Usar un factor de escalado para imágenes muy grandes
+                    factor_escala = min(2000 / max(img.size[0], img.size[1]), 1.0)
+                    nuevo_ancho = int(img.size[0] * factor_escala)
+                    nuevo_alto = int(img.size[1] * factor_escala)
+                    img = img.resize(
+                        (nuevo_ancho, nuevo_alto), 
+                        Image.Resampling.LANCZOS
+                    )
                 
                 # Convertir a RGB si es necesario
                 if img.mode in ('RGBA', 'LA', 'P', 'PA'):
@@ -94,13 +111,19 @@ class PDFConverter:
                     img = img.convert('RGB')
                 
                 # Guardar como PDF con compresión optimizada
-                img.save(str(ruta_pdf), 'PDF', resolution=100.0, optimize=True)
+                img.save(
+                    str(ruta_pdf), 
+                    'PDF', 
+                    resolution=100.0, 
+                    optimize=True,
+                    quality=85  # Mejor balance entre calidad y tamaño
+                )
             return True, str(ruta_relativa), None
         except Exception as e:
             return False, str(ruta_imagen.name), str(e)
     
     def procesar_carpeta(self, directorio, modo_comprimido, callbacks, patron="*"):
-        """Procesa todas las imágenes en la carpeta usando un thread pool"""
+        """Procesa todas las imágenes en la carpeta usando un thread pool."""
         temp_dir = None
         try:
             self.procesando = True
@@ -172,7 +195,8 @@ class PDFConverter:
             # Crear ZIP si es necesario
             if modo_comprimido and temp_dir:
                 callbacks.on_creating_zip()
-                zip_path = self.directorio_salida or Path(directorio) / f"PDFs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+                nombre_zip = f"PDFs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+                zip_path = self.directorio_salida or Path(directorio) / nombre_zip
                 
                 with zipfile.ZipFile(str(zip_path), 'w', zipfile.ZIP_DEFLATED) as zipf:
                     temp_path = Path(temp_dir)
@@ -186,7 +210,8 @@ class PDFConverter:
                 # Limpiar directorio temporal
                 shutil.rmtree(temp_dir)
             
-            callbacks.on_complete(convertidas, total_imagenes, errores, modo_comprimido)
+            callbacks.on_complete(convertidas, total_imagenes, errores, 
+                                 modo_comprimido)
             
         except Exception as e:
             callbacks.on_error(str(e))
@@ -195,5 +220,5 @@ class PDFConverter:
             callbacks.on_finish()
     
     def cancelar_proceso(self):
-        """Cancela el proceso actual"""
+        """Cancela el proceso actual."""
         self.cancelar = True

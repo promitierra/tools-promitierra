@@ -169,6 +169,65 @@ class TestPDFConverter(unittest.TestCase):
         original_size = os.path.getsize(huge_path)
         self.assertLess(pdf_size, original_size)  # El PDF debe ser más pequeño
     
+    def test_optimizacion_memoria_multiple(self):
+        """Prueba que múltiples imágenes grandes pueden ser procesadas sin problemas de memoria"""
+        # Crear directorio para prueba
+        test_dir = os.path.join(self.temp_dir, 'memoria_test')
+        os.makedirs(test_dir)
+        
+        # Crear varias imágenes grandes
+        tamaños = [(3000, 2000), (2500, 3500), (4000, 3000)]
+        rutas_imagenes = []
+        
+        for i, (ancho, alto) in enumerate(tamaños):
+            img = Image.new('RGB', (ancho, alto), color=(255, 0, i * 50))
+            img_path = os.path.join(test_dir, f'img_grande_{i}.jpg')
+            img.save(img_path, quality=85)
+            rutas_imagenes.append(img_path)
+        
+        class MemoryTestCallbacks:
+            def __init__(self):
+                self.converted = []
+                self.errors = []
+                self.max_memory_mb = 0
+                
+            def on_start(self): pass
+            def on_images_found(self, total): pass
+            def on_file_converted(self, name): 
+                self.converted.append(name)
+                # Monitorizar uso de memoria
+                import psutil
+                process = psutil.Process(os.getpid())
+                memory_mb = process.memory_info().rss / 1024 / 1024
+                self.max_memory_mb = max(self.max_memory_mb, memory_mb)
+            def on_file_error(self, name, error): self.errors.append((name, error))
+            def on_complete(self, *args): pass
+            def on_progress(self, *args): pass
+            def on_processing_file(self, *args): pass
+            def on_finish(self): pass
+            def on_no_images(self): pass
+        
+        callbacks = MemoryTestCallbacks()
+        self.converter.procesar_carpeta(test_dir, False, callbacks)
+        
+        # Verificar que todas las imágenes fueron convertidas
+        self.assertEqual(len(callbacks.converted), len(tamaños))
+        self.assertEqual(len(callbacks.errors), 0)
+        
+        # Verificar que los PDFs fueron creados y son más pequeños
+        for i in range(len(tamaños)):
+            pdf_path = os.path.join(test_dir, f'img_grande_{i}.pdf')
+            self.assertTrue(os.path.exists(pdf_path))
+            
+            # Verificar tamaño del PDF (debe ser menor al original)
+            pdf_size = os.path.getsize(pdf_path)
+            original_size = os.path.getsize(rutas_imagenes[i])
+            self.assertLess(pdf_size, original_size * 0.8)  # Al menos 20% más pequeño
+        
+        # Verificar que el uso de memoria fue razonable (menos de 500MB por imagen)
+        print(f"Uso máximo de memoria: {callbacks.max_memory_mb:.2f} MB")
+        self.assertLess(callbacks.max_memory_mb, 500 * len(tamaños))
+    
     def test_formatos_imagen(self):
         """Prueba la conversión de diferentes formatos de imagen"""
         # Crear un directorio temporal específico para esta prueba
