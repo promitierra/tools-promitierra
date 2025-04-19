@@ -2,6 +2,7 @@ import unittest
 import tkinter as tk
 import os
 import tempfile
+from unittest.mock import MagicMock
 from datetime import datetime
 from src.utils.helpers import agregar_detalle, actualizar_progreso, generar_nombre_zip, validar_directorio
 
@@ -10,7 +11,11 @@ class TestHelpers(unittest.TestCase):
         """Configuración inicial para cada prueba"""
         self.root = tk.Tk()
         self.text_widget = tk.Text(self.root)
-        self.progress_bar = tk.ttk.Progressbar(self.root)
+        
+        # Crear un objeto mock para la barra de progreso
+        self.progress_bar = MagicMock()
+        self.progress_bar.set = MagicMock()
+        
         self.temp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
@@ -51,7 +56,8 @@ class TestHelpers(unittest.TestCase):
         valores = [0, 0.5, 1]
         for valor in valores:
             actualizar_progreso(self.progress_bar, valor)
-            self.assertEqual(self.progress_bar["value"], valor * 100)
+            # Verificar que set fue llamado con el valor correcto
+            self.progress_bar.set.assert_called_with(valor)
 
     def test_generar_nombre_zip(self):
         """Prueba la generación de nombres ZIP"""
