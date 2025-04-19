@@ -310,7 +310,7 @@ Para una carpeta:
         
         # Crear footer global
         self.footer = self.crear_footer(self.ventana)
-        self.footer.pack(side="bottom", fill="x", pady=(0, 10), padx=20)
+        self.footer.pack(side="bottom", fill="x", pady=(20, 30), padx=20)
 
     def crear_contenido_tab_carpetas(self):
         """Crear el contenido de la pestaña de creación de carpetas"""
@@ -582,18 +582,18 @@ Para una carpeta:
 
     def crear_footer(self, frame_padre):
         """Crear el pie de página con créditos"""
-        creditos_interno = ctk.CTkFrame(frame_padre, fg_color="transparent")
+        creditos_interno = ctk.CTkFrame(frame_padre, fg_color="#F0F0F0", border_width=1, border_color="#CCCCCC")
 
         creditos_linea1 = ctk.CTkLabel(
             creditos_interno,
             text="Desarrollado por: Luis Fernando Moreno Montoya | 2025",
-            font=ctk.CTkFont(size=13),
-            text_color="#CCCCCC"
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color="#555555"
         )
-        creditos_linea1.pack(pady=(10, 3))
+        creditos_linea1.pack(pady=(20, 5))
         
         mensaje_frame = ctk.CTkFrame(creditos_interno, fg_color="transparent")
-        mensaje_frame.pack(pady=(3, 10))
+        mensaje_frame.pack(pady=(5, 20))
 
         parte1 = ctk.CTkLabel(
             mensaje_frame,
