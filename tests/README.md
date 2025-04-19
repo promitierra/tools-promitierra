@@ -1,80 +1,71 @@
-# Pruebas (Tests) para Herramientas ProMITIERRA
+# Pruebas Unitarias - Herramientas PromiTierra
 
-Este directorio contiene las pruebas automatizadas para el proyecto Herramientas ProMITIERRA.
+Este directorio contiene las pruebas unitarias y de integración para el proyecto Herramientas PromiTierra.
 
-## Estructura de Directorios
+## Estructura
 
-```
-tests/
-├── unit/              # Pruebas unitarias (componentes individuales)
-├── integration/       # Pruebas de integración (interacción entre componentes)
-├── utils/             # Scripts utilitarios para la ejecución de pruebas
-│   ├── run_tests.py   # Script principal para ejecución de pruebas
-│   └── test_import.py # Utilitario para verificar importaciones
-├── data/              # Datos para pruebas
-│   ├── input/         # Archivos de entrada para pruebas
-│   └── expected/      # Resultados esperados para comparación
-├── conftest.py        # Configuración compartida de pytest
-└── README.md          # Este archivo
-```
+- `unit/`: Pruebas unitarias
+- `integration/`: Pruebas de integración
+- `data/`: Datos de prueba
+- `utils/`: Utilidades para pruebas
+- `conftest.py`: Configuración global para pytest
 
-## Convenciones de Nombres
+## Requisitos
 
-- **Archivos**: Usar formato `test_[nombre_modulo].py`
-- **Métodos**: `test_[función]_[escenario]_[resultado_esperado]`
+Para ejecutar las pruebas necesitas tener instaladas todas las dependencias del proyecto:
 
-## Ejecución de Pruebas
+```bash
+# Activar entorno virtual
+source .venv/bin/activate  # o "source venv/bin/activate"
 
-Para ejecutar todas las pruebas:
-```
-python run_tests.py
+# Instalar el proyecto en modo desarrollo
+pip install -e .
+
+# Instalar todas las dependencias
+pip install -r requirements.txt
 ```
 
-Para ejecutar solo pruebas unitarias:
-```
+## Ejecutar pruebas
+
+### Usando el script `run_tests.py`
+
+El script `run_tests.py` facilita la ejecución de pruebas:
+
+```bash
+# Ejecutar tests de helpers (recomendado, funcionan correctamente)
 python run_tests.py --unit
+
+# Si se quieren probar todas las pruebas (algunas pueden fallar)
+python run_tests.py --all
 ```
 
-Para ejecutar solo pruebas de integración:
-```
-python run_tests.py --integration
-```
+### Usando pytest directamente
 
-Para ejecutar tests con reporte de cobertura:
-```
-python run_tests.py
-```
+También puedes usar pytest directamente:
 
-Para desactivar el reporte de cobertura:
-```
-python run_tests.py --no-cov
+```bash
+# Ejecutar test_helpers.py (recomendado)
+python -m pytest tests/unit/test_helpers.py
+
+# Ejecutar con detalles
+python -m pytest tests/unit/test_helpers.py -v
 ```
 
-## Fixtures Compartidos
+### Uso con VS Code
 
-Los fixtures compartidos se encuentran en `conftest.py` e incluyen:
+Si usas VS Code, puedes usar la extensión "Pruebas" para ejecutar y depurar pruebas. 
+La configuración ya está establecida en `.vscode/settings.json`.
 
-- `temp_dir`: Crea un directorio temporal para las pruebas y lo elimina después
-- `test_files_dir`: Retorna la ruta al directorio de archivos de prueba
-- `expected_files_dir`: Retorna la ruta al directorio de archivos esperados para comparaciones
+## Estado actual
 
-## Mejores Prácticas
+Actualmente solo la prueba `test_helpers.py` funciona correctamente. Las demás pruebas
+requieren correcciones en las rutas de importación.
 
-1. **Independencia**: Cada test debe ser autónomo y no depender de otros tests
-2. **Cobertura**: Cubrir el camino feliz, casos de error y casos límite
-3. **Simplicidad**: Una aseveración principal por test
-4. **Aislamiento**: Usar mocks para recursos externos
+## Convenciones
 
-## Estructura de Tests (AAA)
-
-```python
-def test_example():
-    # Arrange - Preparar datos y objetos
-    converter = PDFConverter()
-
-    # Act - Ejecutar acción
-    result = converter.convert_image('imagen.jpg')
-
-    # Assert - Verificar resultado
-    assert result == True
-``` 
+1. Nombrar los archivos de prueba con el prefijo `test_`.
+2. Nombrar las clases de prueba con el prefijo `Test`.
+3. Nombrar los métodos de prueba con el prefijo `test_`.
+4. Seguir el patrón AAA (Arrange-Act-Assert) en las pruebas.
+5. Usar fixtures de pytest para configuración común.
+6. Documentar correctamente las pruebas con docstrings. 
