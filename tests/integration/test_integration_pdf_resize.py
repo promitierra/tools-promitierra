@@ -137,7 +137,9 @@ def test_integration_resize_pdf_vs_pdfresizer(sample_pdfs, tmp_path):
         output_class = tmp_path / f"class_{pdf_path.name}"
         
         # 1. Redimensionar usando el script independiente
-        cmd = f"python resize_pdf.py {pdf_path} {output_script} centrar"
+        script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                                  "src", "scripts", "resize_pdf.py")
+        cmd = f"python {script_path} {pdf_path} {output_script} centrar"
         result = os.system(cmd)
         assert result == 0, f"El script falló con código {result}"
         assert os.path.exists(output_script), f"El archivo de salida {output_script} no fue creado"
@@ -167,7 +169,9 @@ def test_integration_resize_pdf_vs_pdfresizer_no_center(sample_pdfs, tmp_path):
         output_class = tmp_path / f"class_nocenter_{pdf_path.name}"
         
         # 1. Redimensionar usando el script independiente (sin centrar)
-        cmd = f"python resize_pdf.py {pdf_path} {output_script}"
+        script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                                  "src", "scripts", "resize_pdf.py")
+        cmd = f"python {script_path} {pdf_path} {output_script}"
         result = os.system(cmd)
         assert result == 0, f"El script falló con código {result}"
         assert os.path.exists(output_script), f"El archivo de salida {output_script} no fue creado"
