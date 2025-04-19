@@ -24,6 +24,7 @@ htmlcov/
 CONSOLIDADO ENTREGA IPPTA's & PLANEADORES/*
 
 # Entornos virtuales
+.venv/
 venv/
 env/
 .env/
