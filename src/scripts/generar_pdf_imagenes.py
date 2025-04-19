@@ -26,6 +26,7 @@ import os
 from pathlib import Path
 import sys
 import logging
+from typing import Optional, Callable
 from PIL import Image
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
@@ -41,7 +42,7 @@ logger = logging.getLogger(__name__)
 project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
-def generar_pdf_con_imagenes(directorio_imagenes: str, ruta_salida: str, debug: bool = False, incluir_numeros_pagina: bool = True):
+def generar_pdf_con_imagenes(directorio_imagenes: str, ruta_salida: str, debug: bool = False, incluir_numeros_pagina: bool = True, callback_progreso: Optional[Callable[[int, int], None]] = None):
     """
     Genera un PDF con todas las imágenes del directorio, garantizando:
     - Orientación siempre horizontal (landscape)
@@ -54,6 +55,7 @@ def generar_pdf_con_imagenes(directorio_imagenes: str, ruta_salida: str, debug: 
         ruta_salida (str): Ruta donde se guardará el PDF generado
         debug (bool, opcional): Activa el modo debug para información adicional
         incluir_numeros_pagina (bool, opcional): Indica si se deben incluir números de página
+        callback_progreso (Callable, opcional): Función a llamar para reportar progreso (imagen_actual, total_imagenes)
     
     Returns:
         None: El PDF se guarda en la ruta especificada
@@ -77,6 +79,8 @@ def generar_pdf_con_imagenes(directorio_imagenes: str, ruta_salida: str, debug: 
     for ext in ['.png', '.jpg', '.jpeg']:
         imagenes.extend(Path(directorio_imagenes).glob(f'*{ext}'))
     imagenes = sorted(imagenes, key=lambda x: x.name)
+    
+    total_imagenes = len(imagenes)  # Guardar total para el callback
     
     # Procesar cada imagen
     for num_pagina, ruta_imagen in enumerate(imagenes, 1):
@@ -129,7 +133,11 @@ def generar_pdf_con_imagenes(directorio_imagenes: str, ruta_salida: str, debug: 
                 # Nueva página
                 c.showPage()
                 
-                logger.info(f"Procesada imagen {num_pagina} de {len(imagenes)}: {ruta_imagen.name}")
+                # Llamar al callback de progreso si existe
+                if callback_progreso:
+                    callback_progreso(num_pagina, total_imagenes)
+                
+                logger.info(f"Procesada imagen {num_pagina} de {total_imagenes}: {ruta_imagen.name}")
                 
         except Exception as e:
             logger.error(f"Error procesando {ruta_imagen.name}: {str(e)}")

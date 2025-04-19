@@ -5,6 +5,7 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import os
 from datetime import datetime
+from pathlib import Path
 from .pdf_converter import PDFConverter
 from src.core.folder_creator import FolderCreator
 from src.core.pdf_resizer import PDFResizer
@@ -15,6 +16,7 @@ from ..utils.helpers import (
     generar_nombre_zip,
     validar_directorio
 )
+from src.scripts.generar_pdf_imagenes import generar_pdf_con_imagenes
 import threading
 import logging
 from io import StringIO
@@ -91,6 +93,10 @@ class ImagenAPdfGUI:
         self.modo_comprimido = ctk.BooleanVar(value=False)
         self.centrar_contenido = ctk.BooleanVar(value=False)
         self.procesando = False
+        # Variables para PDF consolidado
+        self.ruta_carpeta_consolidado = ctk.StringVar()
+        self.nombre_pdf_consolidado = ctk.StringVar(value="P - MUNICIPIO - CONSOLIDADO FORMATO ENTREGA - PRODUCTO - EXTENSIONISTA.pdf")
+        self.estado_consolidado = ctk.StringVar(value="Esperando selección...")
         
         # Textos de ayuda para cada pestaña
         self.help_texts = {
@@ -236,12 +242,12 @@ Para una carpeta:
             descripcion.pack(expand=True)
         
         # Frame para controles (15% del espacio)
-        controles_frame = ctk.CTkFrame(contenedor, fg_color="transparent", height=75)
+        controles_frame = ctk.CTkFrame(contenedor, fg_color="transparent", height=150)
         controles_frame.pack(fill="x", pady=(0, 10))
         controles_frame.pack_propagate(False)
         
         # Frame para la barra de progreso y estado (30% del espacio)
-        progreso_frame = ctk.CTkFrame(contenedor, fg_color="transparent", height=150)
+        progreso_frame = ctk.CTkFrame(contenedor, fg_color="transparent", height=100)
         progreso_frame.pack(fill="x", pady=(0, 10))
         progreso_frame.pack_propagate(False)
         
@@ -350,6 +356,79 @@ Para una carpeta:
         self.barra_progreso = elementos["barra_progreso"]
         self.lbl_estado = elementos["estado"]
         self.detalles = elementos["detalles"]
+
+        # --- Inicio: Sección para PDF Consolidado Horizontal ---
+        separador = ctk.CTkFrame(elementos["contenedor"], height=2, fg_color="grey70")
+        separador.pack(fill="x", pady=(15, 10), padx=20)
+
+        titulo_consolidado = ctk.CTkLabel(
+            elementos["contenedor"],
+            text="Generar PDF Consolidado Horizontal",
+            font=ctk.CTkFont(size=16, weight="bold")
+        )
+        titulo_consolidado.pack(pady=(5, 10))
+
+        # Frame para selección de carpeta consolidada
+        frame_carpeta_consolidado = ctk.CTkFrame(elementos["contenedor"], fg_color="transparent")
+        frame_carpeta_consolidado.pack(fill="x", pady=(0, 5), padx=20)
+
+        self.btn_seleccionar_consolidado = ctk.CTkButton(
+            frame_carpeta_consolidado,
+            text="Seleccionar Carpeta (Consolidado)",
+            command=self.seleccionar_carpeta_consolidado
+        )
+        self.btn_seleccionar_consolidado.pack(side="left", padx=(0, 10))
+
+        lbl_ruta_consolidado = ctk.CTkLabel(
+            frame_carpeta_consolidado,
+            textvariable=self.ruta_carpeta_consolidado,
+            wraplength=450,
+            justify="left"
+        )
+        lbl_ruta_consolidado.pack(side="left", fill="x", expand=True)
+
+        # Frame para nombre de archivo consolidado
+        frame_nombre_consolidado = ctk.CTkFrame(elementos["contenedor"], fg_color="transparent")
+        frame_nombre_consolidado.pack(fill="x", pady=(5, 10), padx=20)
+
+        lbl_nombre_consolidado = ctk.CTkLabel(
+            frame_nombre_consolidado,
+            text="Nombre del PDF de Salida:"
+        )
+        lbl_nombre_consolidado.pack(side="left", padx=(0, 5))
+
+        entry_nombre_consolidado = ctk.CTkEntry(
+            frame_nombre_consolidado,
+            textvariable=self.nombre_pdf_consolidado,
+            width=400
+        )
+        entry_nombre_consolidado.pack(side="left", fill="x", expand=True)
+        
+        # Frame para botón de generar y progreso consolidado
+        frame_accion_consolidado = ctk.CTkFrame(elementos["contenedor"], fg_color="transparent")
+        frame_accion_consolidado.pack(fill="x", pady=(5, 10), padx=20)
+
+        self.btn_generar_consolidado = ctk.CTkButton(
+            frame_accion_consolidado,
+            text="Generar PDF Consolidado",
+            command=self.iniciar_generacion_consolidado
+        )
+        self.btn_generar_consolidado.pack(side="left", padx=(0, 10))
+
+        self.lbl_estado_consolidado = ctk.CTkLabel(
+            frame_accion_consolidado,
+            textvariable=self.estado_consolidado
+        )
+        self.lbl_estado_consolidado.pack(side="left", padx=(0, 10), fill="x", expand=True)
+
+        self.barra_progreso_consolidado = ctk.CTkProgressBar(elementos["contenedor"])
+        self.barra_progreso_consolidado.pack(fill="x", pady=(5, 10), padx=20)
+        self.barra_progreso_consolidado.set(0)
+        # --- Fin: Sección para PDF Consolidado Horizontal ---
+        
+        # Mover los detalles al final para que estén debajo de todo
+        self.detalles.pack_forget()
+        self.detalles.pack(fill="both", expand=True, padx=20, pady=(10, 0))
 
     def crear_contenido_tab_redimensionar(self):
         """Crear el contenido de la pestaña de redimensionamiento de PDF"""
@@ -966,3 +1045,112 @@ Para una carpeta:
     def iniciar(self):
         """Iniciar la aplicación"""
         self.ventana.mainloop()
+
+    # --- Métodos para PDF Consolidado --- 
+
+    def seleccionar_carpeta_consolidado(self):
+        """Abre diálogo para seleccionar la carpeta de imágenes para el PDF consolidado"""
+        if self.procesando:
+            messagebox.showwarning("Proceso en curso", "Espera a que termine el proceso actual.")
+            return
+        
+        directorio = filedialog.askdirectory(title="Seleccionar Carpeta con Imágenes para Consolidar")
+        if directorio:
+            if validar_directorio(directorio):
+                self.ruta_carpeta_consolidado.set(directorio)
+                self.estado_consolidado.set("Carpeta seleccionada. Listo para generar.")
+            else:
+                messagebox.showerror("Error", "El directorio seleccionado no es válido o no tienes permisos.")
+                self.ruta_carpeta_consolidado.set("")
+                self.estado_consolidado.set("Error al seleccionar carpeta.")
+
+    def iniciar_generacion_consolidado(self):
+        """Inicia la generación del PDF consolidado en un hilo separado"""
+        if self.procesando:
+            messagebox.showwarning("Proceso en curso", "Ya hay otro proceso en ejecución.")
+            return
+
+        ruta_carpeta = self.ruta_carpeta_consolidado.get()
+        nombre_salida_base = self.nombre_pdf_consolidado.get()
+
+        if not ruta_carpeta or not os.path.isdir(ruta_carpeta):
+            messagebox.showerror("Error", "Por favor, selecciona una carpeta válida con imágenes.")
+            return
+
+        if not nombre_salida_base:
+            messagebox.showerror("Error", "Por favor, especifica un nombre para el archivo PDF de salida.")
+            return
+        
+        if not nombre_salida_base.lower().endswith(".pdf"):
+            nombre_salida_base += ".pdf"
+            self.nombre_pdf_consolidado.set(nombre_salida_base) # Actualizar entry si se añade extensión
+
+        ruta_salida_completa = str(Path(ruta_carpeta) / nombre_salida_base)
+        
+        # Advertir si el archivo ya existe (opcional, por ahora sobrescribe)
+        # if os.path.exists(ruta_salida_completa):
+        #     if not messagebox.askyesno("Sobrescribir", f"El archivo {nombre_salida_base} ya existe. ¿Deseas sobrescribirlo?"):
+        #         return
+
+        self.procesando = True
+        self.btn_seleccionar.configure(state="disabled") # Deshabilitar botón original también
+        self.btn_seleccionar_consolidado.configure(state="disabled")
+        self.btn_generar_consolidado.configure(state="disabled")
+        self.check_comprimir.configure(state="disabled") # Deshabilitar checkbox original
+        
+        self.barra_progreso_consolidado.set(0)
+        self.estado_consolidado.set("Iniciando generación de PDF consolidado...")
+        agregar_detalle(self.detalles, f"Iniciando PDF consolidado: {nombre_salida_base}")
+
+        threading.Thread(
+            target=self._ejecutar_generacion_consolidado, 
+            args=(ruta_carpeta, ruta_salida_completa),
+            daemon=True
+        ).start()
+        
+    def _callback_progreso_gui(self, actual, total):
+        """Callback para actualizar la GUI desde el hilo de generación."""
+        progreso = actual / total
+        # Usar after para asegurar que se ejecuta en el hilo principal de Tkinter
+        self.ventana.after(0, lambda: self.barra_progreso_consolidado.set(progreso))
+        self.ventana.after(0, lambda: self.estado_consolidado.set(f"Procesando imagen {actual} de {total}..."))
+
+    def _ejecutar_generacion_consolidado(self, ruta_carpeta, ruta_salida_completa):
+        """Ejecuta la función de generación de PDF y maneja resultados/errores."""
+        try:
+            # Llamar a la función importada con el callback
+            generar_pdf_con_imagenes(
+                directorio_imagenes=ruta_carpeta, 
+                ruta_salida=ruta_salida_completa, 
+                incluir_numeros_pagina=True, # Se puede hacer configurable si se desea
+                callback_progreso=self._callback_progreso_gui
+            )
+            
+            # Si no hubo excepciones:
+            self.ventana.after(0, lambda: self.estado_consolidado.set("¡PDF consolidado generado con éxito!"))
+            self.ventana.after(0, lambda: agregar_detalle(self.detalles, f"Éxito: PDF guardado en {ruta_salida_completa}", "success"))
+            self.ventana.after(0, lambda: messagebox.showinfo("Éxito", f"PDF consolidado generado exitosamente:\n{ruta_salida_completa}"))
+            # Asegurar que la barra llegue al 100%
+            self.ventana.after(0, lambda: self.barra_progreso_consolidado.set(1.0))
+            
+        except Exception as e:
+            error_msg = f"Error al generar PDF consolidado: {str(e)}"
+            self.ventana.after(0, lambda: self.estado_consolidado.set("Error durante la generación."))
+            self.ventana.after(0, lambda: agregar_detalle(self.detalles, error_msg, "error"))
+            self.ventana.after(0, lambda: messagebox.showerror("Error", error_msg))
+            # Poner barra a 0 en caso de error
+            self.ventana.after(0, lambda: self.barra_progreso_consolidado.set(0))
+        finally:
+            # Este bloque se ejecuta siempre, re-habilitar controles desde el hilo principal
+            def reenable_controls():
+                self.procesando = False
+                self.btn_seleccionar.configure(state="normal")
+                self.btn_seleccionar_consolidado.configure(state="normal")
+                self.btn_generar_consolidado.configure(state="normal")
+                self.check_comprimir.configure(state="normal")
+                # Podríamos resetear el estado aquí o dejar el último mensaje
+                # self.estado_consolidado.set("Esperando selección...") 
+                
+            self.ventana.after(0, reenable_controls)
+
+    # --- Fin Métodos para PDF Consolidado ---
