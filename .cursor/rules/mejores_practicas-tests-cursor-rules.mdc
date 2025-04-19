@@ -1,0 +1,83 @@
+---
+description: Mejores prácticas compactas para escribir y organizar pruebas en proyectos
+globs: tests/**/*.py,tests/**/*.md,src/**/test_*.py
+alwaysApply: false
+---
+
+# Mejores Prácticas para Pruebas (Tests)
+
+## ⚠️ Ubicación de Tests
+
+- **✓ SIEMPRE**: Colocar tests en la carpeta `/tests`
+- **✗ NUNCA**: Colocar tests en `/src` o subdirectorios
+
+Los tests deben mantenerse completamente separados del código de producción.
+No mezclar tests con código fuente, incluso cuando parezca conveniente.
+
+## ⛔ ADVERTENCIA: Test Detectado en /src
+
+**Si está viendo este mensaje, ha creado un archivo de test en el directorio `/src`.**
+
+Por favor, mueva inmediatamente este archivo al directorio `/tests` siguiendo esta estructura:
+- Tests unitarios: `/tests/unit/`
+- Tests de integración: `/tests/integration/`
+
+```
+# ❌ INCORRECTO (Ubicación actual)
+/src/.../test_xxx.py
+
+# ✅ CORRECTO (Mover a)
+/tests/unit/test_xxx.py
+```
+
+## Estructura Correcta
+- `/tests/unit/`: Para pruebas unitarias
+- `/tests/integration/`: Para pruebas de integración
+- `/tests/conftest.py`: Configuración compartida
+- **Archivos**: Usar formato `test_[nombre_modulo].py`
+- **Métodos**: `test_[función]_[escenario]_[resultado_esperado]`
+
+## Principios Fundamentales
+1. **Independencia**: Cada test autónomo, sin dependencias entre tests
+2. **Cobertura**: Happy path + casos error + casos límite (>80%)
+3. **Simplicidad**: Una aseveración principal por test
+4. **Aislamiento**: Usar mocks para recursos externos
+
+## Estructura AAA
+```python
+def test_example():
+    # Arrange - Preparar datos y objetos
+    server = FilesystemServer(['/ruta/permitida'])
+
+    # Act - Ejecutar acción
+    result = server.read_file('/ruta/permitida/archivo.txt')
+
+    # Assert - Verificar resultado
+    assert result == 'contenido esperado'
+```
+
+## Pytest (Recomendado)
+- Usar fixtures para configuración y limpieza (`@pytest.fixture`)
+- Implementar parametrización para múltiples escenarios (`@pytest.mark.parametrize`)
+- Utilizar marcadores para categorizar tests (`@pytest.mark.slow`)
+- Aprovechar `conftest.py` para fixtures compartidos
+
+## Unittest (Alternativa)
+- Usar `setUp` y `tearDown` para configuración común
+- Implementar `unittest.main()` para descubrimiento de tests
+- Utilizar `self.subTest()` para casos múltiples en un solo test
+- Heredar de `unittest.TestCase`
+
+## Checklist Esencial
+- [ ] Tests ubicados SOLO en carpeta `/tests` (nunca en `/src`)
+- [ ] Tests para todas las funciones públicas
+- [ ] Casos normales, error y límite cubiertos
+- [ ] Tests independientes y bien nombrados
+- [ ] Entorno limpiado después de cada test
+- [ ] Sin credenciales/secretos en tests
+
+## Herramientas Python
+- **pytest**: Framework recomendado y potente
+- **unittest**: Estándar de Python
+- **coverage.py**: Análisis de cobertura
+- **tempfile**: Directorios/archivos temporales

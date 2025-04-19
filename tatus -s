@@ -1,0 +1,16 @@
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mindex 19664f1..36a52fe 100644[m
+[1m--- a/.gitignore[m
+[1m+++ b/.gitignore[m
+[36m@@ -29,11 +29,9 @@[m [menv/[m
+ .env/[m
+ [m
+ # IDEs y editores[m
+[31m-.vscode/[m
+ .idea/[m
+ *.swp[m
+ *.swo[m
+[31m-.cursor/[m
+ [m
+ # Archivos temporales[m
+ *.tmp[m

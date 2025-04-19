@@ -1,0 +1,46 @@
+---
+description: Mejores prácticas para gestionar repositorios con Git y GitHub CLI
+globs: 
+alwaysApply: false
+---
+---
+description: Mejores prácticas para gestionar repositorios con Git y GitHub CLI
+globs: ["**/*.git", "**/.github/**", "**/CONTRIBUTING.md", "**/PULL_REQUEST_TEMPLATE.md"]
+alwaysApply: false
+---
+
+# Mejores Prácticas para Gestión de Repositorios con Git y GitHub CLI
+
+El repositorio es gestionado colaborativamente por el equipo de trabajo mediante GitHub CLI, facilitando el trabajo distribuido y la integración continua.
+
+## Lineamientos Clave
+
+### Commits
+
+- Usar mensajes descriptivos: `tipo(alcance): descripción concisa`
+- Mantener commits pequeños y atómicos (un cambio lógico por commit)
+- Tipos: `feat`, `fix`, `docs`, `style`, `refactor`, `test`
+
+### Ramas
+
+- Nombrar con prefijos: `feature/`, `bugfix/`, `hotfix/`
+- Mantener ramas cortas y actualizadas con main
+- Actualizar siempre antes de comenzar: `git pull origin main`
+
+### Integración
+
+- Preferir rebase para historial limpio: `git rebase main`
+- Resolver conflictos rápidamente
+- Revisar cambios antes de PR: `gh pr view --web`
+
+### Seguridad
+
+- No commitear secretos ni credenciales
+- Verificar qué se va a commitear: `git diff --staged`
+- Usar `.gitignore` para archivos sensibles
+
+### Colaboración
+
+- Crear PRs con descripciones claras
+- Referenciar issues: `Fixes #123`
+- Solicitar revisiones de código

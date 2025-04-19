@@ -1,0 +1,89 @@
+---
+description: Mejores prácticas para la redaccion de documentación .md
+globs: docs/**/*.md,*.md
+alwaysApply: false
+---
+
+# Mejores prácticas para la redaccion de documentación .md
+
+[Ver estructura del repositorio](mdc:mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer/mmlufer/mmlufer/mmlufer/mmlufer/mmlufer/mmlufer/mmlufer/mmlufer/docs/desarrollo/estructura-repositorio.md)
+
+## Estructura de Documentación
+
+1. **Organización de Archivos**
+   - `/docs`: Directorio principal de documentación
+     - `/docs/api`: Documentación de APIs y endpoints
+     - `/docs/guias`: Guías de usuario y tutoriales
+     - `/docs/desarrollo`: Guías de desarrollo
+     - `/docs/analisis`: Documentación de analisis
+     - `/docs/mcp`: Documentación de servidores MCP
+
+2. **Archivos Principales**
+   - `README.md`: Visión general del proyecto y guía rápida
+   - `CONTRIBUTING.md`: Guías de contribución
+   - `SECURITY.md`: Políticas de seguridad
+   - `CHANGELOG.md`: Registro de cambios
+   - `LICENSE.md`: Información de licencia
+
+## Principios de Documentación
+
+1. **Separación de Responsabilidades**
+   - Cada archivo debe tener un propósito único y claro
+   - Evitar mezclar diferentes tipos de información
+   - Usar referencias cruzadas en lugar de duplicar contenido
+   - Mantener la documentación cerca del código que describe
+
+2. **Estructura de Archivos MD**
+   - Comenzar con un título descriptivo (h1)
+   - Incluir una breve descripción del propósito
+   - Usar encabezados jerárquicos (h2, h3, etc.)
+   - Mantener una estructura consistente
+
+3. **Contenido**
+   - Usar lenguaje claro y conciso
+   - Incluir ejemplos prácticos
+   - Mantener la información actualizada
+   - Documentar tanto el "qué", como el "por qué"
+
+## Mejores Prácticas
+
+1. **Fejemplo de Formato**
+   ```markdown
+   # Título Principal
+
+   ## Descripción
+   Breve descripción del propósito...
+
+   ## Contenido Principal
+   ### Subtema 1
+   - Punto clave 1
+   - Punto clave 2
+
+   ### Subtema 2
+   Explicación detallada...
+
+   ## Referencias
+   - @ Enlace 1
+   - @ Enlace 2
+   ```
+
+2. **Enlaces y Referencias**
+   - Usar enlaces relativos para documentación interna
+   - Mantener enlaces externos en una sección de referencias
+   - Verificar regularmente la validez de los enlaces
+
+3. **Mantenimiento**
+   - Revisar y actualizar la documentación con cada cambio
+   - Eliminar contenido obsoleto o redundante
+   - Mantener un registro de cambios actualizado
+
+## Checklist de Documentación (no necesariamente todo tiene que ser incluido si no se requiere)
+
+- [ ] Estructura clara y consistente
+- [ ] Propósito único por archivo
+- [ ] Enlaces y referencias actualizados
+- [ ] Ejemplos prácticos y cortos incluidos
+- [ ] Grafico mermaid descriptivo.
+- [ ] Información actualizada
+- [ ] Formato correcto
+- [ ] Referencias cruzadas apropiadas

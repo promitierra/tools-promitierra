@@ -29,11 +29,9 @@ env/
 .env/
 
 # IDEs y editores
-.vscode/
 .idea/
 *.swp
 *.swo
-.cursor/
 
 # Archivos temporales
 *.tmp

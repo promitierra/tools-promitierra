@@ -20,6 +20,7 @@
 			"**/CVS": true,
 			"**/.DS_Store": true,
 			"**/Thumbs.db": true
-		}
+		},
+		"powershell.cwd": "tools-promitierra"
 	}
 }

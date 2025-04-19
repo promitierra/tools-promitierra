@@ -1,0 +1,78 @@
+---
+description: 
+globs: .cursor/rules/*.md,.cursor/rules/*.mdc,.cursor/rules/*
+alwaysApply: false
+---
+---
+description: "Guía para crear o actualizar Reglas de Cursor para este proyecto, basada en la documentación oficial."
+globs: [".cursor/rules/*.md", ".cursor/rules/*.mdc",".cursor/rules/*"]
+alwaysApply: false
+---
+
+# Cómo Gestionar Reglas de Cursor para el Proyecto
+
+Esta regla describe las mejores prácticas y la estructura para crear o actualizar Reglas de Cursor dentro de este proyecto, asegurando que sean efectivas y fáciles de mantener.
+
+## Propósito de las Reglas de Cursor
+
+Las Reglas de Cursor permiten definir instrucciones personalizadas para la IA a nivel de proyecto. Se usan para:
+
+- Proporcionar contexto sobre el proyecto (tecnologías, objetivos).
+- Establecer guías de estilo de código.
+- Informar sobre métodos o APIs comúnmente utilizados.
+- Definir patrones de arquitectura específicos.
+- Indicar cómo manejar ciertos tipos de archivos (p.ej., archivos generados).
+
+## Ubicación y Formato
+
+- **Directorio:** Todas las reglas específicas del proyecto deben residir en el directorio `.cursor/rules/` en la raíz del espacio de trabajo.
+- **Formato:**
+  - Utiliza la extensión `.md`
+  - El contenido principal del archivo debe estar en formato Markdown.
+- **Nomenclatura:**
+  - El nombre del archivo debe estar conformado por palabras descriptivas en español.
+  - Las palabras deben estar separadas por guiones medios (`-`).
+  - El nombre siempre debe terminar con el sufijo `-cursor-rules`.
+  - Ejemplo: `gestion-servidores-mcp-cursor-rules.md`, `desarrollo-python-cursor-rules.md`.
+
+## Estructura de un Archivo de Regla
+
+Cada archivo de regla debe comenzar con una sección "frontmatter" YAML, seguida del cuerpo de la regla en Markdown.
+
+```yaml
+---
+description: "Descripción semántica concisa de cuándo aplicar esta regla."
+globs: ["patron/de/archivo/**.js", "otro/patron/*.ts"] # Opcional: Patrones glob para aplicar automáticamente la regla a ciertos archivos.
+alwaysApply: false # Opcional: true si la regla debe aplicarse siempre automáticamente (usar con precaución).
+---
+# Título Descriptivo de la Regla
+
+Contenido de la regla en Markdown. Aquí se detallan las instrucciones específicas para la IA.
+
+- Usa listas, secciones y formato claro.
+- Proporciona ejemplos si es necesario.
+- Sé específico sobre lo que la IA debe o no debe hacer.
+```
+
+**Campos del Frontmatter:**
+
+- `description`: **Obligatorio.** Explica brevemente el propósito de la regla y en qué situaciones debería aplicarse. Ayuda a la IA a seleccionar la regla correcta.
+- `globs`: **Opcional.** Una lista de patrones ](https://en.wikipedia.org/wiki/Glob_(programming)) que especifican a qué archivos o directorios se aplica esta regla. Si un archivo coincide, la regla puede ser considerada o aplicada automáticamente.
+- `alwaysApply`: **Opcional (predeterminado: `false`).** Si se establece en `true`, la regla se incluirá automáticamente en el contexto para las funciones de IA cuando se trabaje en archivos que coincidan con los `globs`. Úsalo con moderación para evitar sobrecargar el contexto.
+
+## Creación de Reglas
+
+- Puedes crear un nuevo archivo `.md` directamente en el directorio `.cursor/rules/`.
+- Alternativamente, usa la paleta de comandos (`Ctrl+Shift+P` o `Cmd+Shift+P`) y busca `New Cursor Rule`.
+
+## Uso de las Reglas
+
+- Puedes referenciar explícitamente una regla en el chat usando `@<nombre-regla>` (p.ej., `@crear-reglas-cursor`).
+- Puedes referenciar todas las reglas disponibles usando `@Cursor Rules`.
+- Las reglas pueden aplicarse automáticamente si `alwaysApply` es `true` y el archivo actual coincide con un `glob`, o si la IA determina semánticamente (basándose en la `description` y el contexto) que la regla es relevante.
+
+## Nota Importante
+
+- Evita usar el archivo `.cursorrules` en la raíz del proyecto. Este método está obsoleto y se recomienda migrar cualquier regla existente a archivos individuales dentro de `.cursor/rules/`.
+- Cada regla debe estar compuesta por maximo 50 lineas de texto.
+

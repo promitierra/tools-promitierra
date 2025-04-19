@@ -1,0 +1,119 @@
+---
+description: Mejores prácticas para documentar tareas que utilizan el IDE y sus herramientas de IA
+globs: *.md,docs/tareas/**/*.md
+alwaysApply: false
+---
+
+# Mejores Prácticas para crear Tareas
+
+## 1. Orientaciones Generales
+
+- **Estructura de Pasos**
+   - Dividir la tarea en pasos manejables
+   - Usar listas numeradas para secuencias y checklists
+   - Incluir puntos de verificación
+   - Documentar posibles problemas y soluciones
+
+- **Uso de Herramientas de IA**
+   - Especificar el contexto necesario para la IA
+   - Proporcionar ejemplos de prompts efectivos
+   - Documentar limitaciones conocidas
+   - Incluir alternativas si la IA no produce el resultado esperado
+
+- **Retroalimentación**
+   - Recopilar feedback de los usuarios
+   - Mejorar la claridad de las instrucciones
+   - Actualizar prompts basados en resultados
+
+## 2. Estructura Esencial del Documento
+
+```markdown
+---
+> Prioridad: [Alta/Media/Baja]
+> Tiempo Estimado: X horas
+> Dependencias: [Lista]
+---
+# [Tarea_ID] - Título Descriptivo
+
+## 1. Resumen
+Objetivo principal y resultado esperado de forma concisa.
+
+### 2. Objetivos Específicos
+- Objetivo 1
+- Objetivo 2
+
+### 3. riterios de Éxito Clave
+- [ ] Criterio A
+- [ ] Criterio B
+- [ ] Criterio B
+
+## 4. Contexto Breve
+¿Por qué se necesita esta tarea? ¿Qué parte del sistema afecta?
+
+## Pasos Principales (Enfocados en el IDE/IA)
+1. **Acción Inicial:** (Ej: Abrir archivo X, usar comando Y)
+2. **Interacción con IA:** (Ej: Prompt sugerido: "Analiza...")
+3. **Acción Final:** (Ej: Guardar resultado en Z)
+
+## 5. Fase de Ejecución: Realización de la Tarea
+(Completar solo en la etapa de ejecución de la tarea)
+
+### Orientaciones para la implementacion de la tarea
+
+- La realizacion de la tarea debe hacerce con python
+- La documentación de la tarea (el archivo `.md`) debe crearse en [Directorio Tareas](mdc:mmlufer-lab/docs/tareas) y nombrarse `[Tarea_ID] - Título Descriptivo.md`.
+- Cada tarea debe tener **un script principal y único** ubicado en [Directorio para Scripts](mdc:mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer-lab/mmlufer-lab/src/scripts) y debe nombrarse "[Tarea_ID] - Título Descriptivo.py"
+   - Si la ejecución de la tarea implica que el usuario interactúe con el script, sera por opciones en la línea de comandos y por defecto, la ubicación sera en subdirectorios nombrados correctamente dentro de [Resultados Tareas](mdc:mmlufer-lab/resultados tareas>)
+   - Siempre.
+- El seguimiento de la documentacion de la tarea se realizará en el mismo documento de la tarea correspondiente "[Tarea_ID] - Título Descriptivo"
+
+
+### Pruebas unitarias
+-Realiza pruebas con base en [mejores_practicas-tests-cursor-rules.mdc](mdc:mmlufer-lab/.cursor/rules/mejores_practicas-tests-cursor-rules.mdc)
+
+### Changelog Tarea
+- Debe ser breve y consciso
+
+### Referencias
+- [Enlaces relevantes]
+- [Documentación]
+
+### Ubicación de los Productos
+- Relacionar el directorio que el usuario eligio para ubicar los productos de la ejecución de la tarea.
+
+### Verificación
+- [ ] Punto de verificación 1
+- [ ] Punto de verificación 2
+
+### Como reproducir el resultado
+- Documentar comandos exactos para replicar el resultado
+
+### Resultados Finales
+1. Resultado A
+2. Resultado B
+```
+
+## 3. Interacción Obligatoria con la IA
+
+**¡Importante!** Antes de implementar la tarea descrita, la IA **DEBE** hacer preguntas al usuario para asegurar la comprensión y el resultado deseado:
+
+1.  **Confirmación del Objetivo:**
+2.  **Resultado Esperado:**
+3.  **Impacto en el Sistema:**
+4.  **Ambigüedades:**
+5.  **Alcance y Enfoque:**
+
+**Nota:** La implementación debe centrarse en utilizar/ampliar las funcionalidades existentes del repositorio, y estar orientado a obtener los resultados en una única sesión (una tarea no es un proyecto)
+
+## 4. Checklist de Documentación
+
+- [ ] Título claro y descriptivo
+- [ ] Objetivos específicos y medibles
+- [ ] Pasos detallados y secuenciales
+- [ ] Ejemplos de código o configuración
+- [ ] Comandos y prompts específicos
+- [ ] Puntos de verificación
+- [ ] Referencias y recursos adicionales
+- [ ] Consideraciones de rendimiento o seguridad
+- [ ] Problemas conocidos y soluciones
+- [ ] Criterios de éxito verificables
