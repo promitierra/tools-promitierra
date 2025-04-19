@@ -1,28 +1,28 @@
 """
 Módulo unificado para creación de carpetas desde plantillas Excel.
 """
-from typing import Tuple, Optional, Callable, List, Dict
+from typing import Tuple, Optional, List, Dict
 import os
-import pandas as pd
+import pandas as pd  # type: ignore
 import shutil
 import re
-import customtkinter as ctk
+import customtkinter as ctk  # type: ignore
 from tkinter import filedialog, messagebox
-from pathlib import Path
 
 from .text_normalizer import TextNormalizer
 
+
 class FolderCreator:
-    """Clase para crear carpetas desde plantillas Excel con validaciones robustas."""
-    
+    """Clase para crear carpetas desde plantillas Excel con validaciones."""
+
     # Caracteres no permitidos en nombres de archivo/carpeta
     CARACTERES_INVALIDOS = r'[<>:"/\\|?*]'
-    
+
     def __init__(self):
         """Inicializar el creador de carpetas."""
         self.text_normalizer = TextNormalizer()
         self.cancelar = False
-    
+
     def crear_plantilla(self, ruta_plantilla: str) -> Tuple[bool, str]:
         """Crear una plantilla de Excel con columnas predefinidas.
         
@@ -34,12 +34,23 @@ class FolderCreator:
         """
         try:
             # Crear DataFrame con columnas estándar
-            df = pd.DataFrame(columns=['ID', 'NOMBRES', 'APELLIDOS', 'CATEGORIA'])
+            columnas = ['ID', 'NOMBRES', 'APELLIDOS', 'CATEGORIA']
+            df = pd.DataFrame(columns=columnas)
             
             # Agregar algunos ejemplos para guiar al usuario
             ejemplos = [
-                {'ID': '001', 'NOMBRES': 'Juan', 'APELLIDOS': 'Pérez', 'CATEGORIA': 'A'},
-                {'ID': '002', 'NOMBRES': 'María', 'APELLIDOS': 'García', 'CATEGORIA': 'B'}
+                {
+                    'ID': '001',
+                    'NOMBRES': 'Juan',
+                    'APELLIDOS': 'Pérez',
+                    'CATEGORIA': 'A'
+                },
+                {
+                    'ID': '002',
+                    'NOMBRES': 'María',
+                    'APELLIDOS': 'García',
+                    'CATEGORIA': 'B'
+                }
             ]
             df = pd.concat([df, pd.DataFrame(ejemplos)], ignore_index=True)
             
@@ -50,7 +61,7 @@ class FolderCreator:
         
         except Exception as e:
             return False, f"Error al crear plantilla: {str(e)}"
-    
+
     def limpiar_nombre_carpeta(self, nombre: str) -> str:
         """Limpia un nombre para que sea válido como nombre de carpeta.
         
@@ -66,7 +77,7 @@ class FolderCreator:
         # Reemplazar caracteres inválidos con guión bajo
         nombre_limpio = re.sub(self.CARACTERES_INVALIDOS, '_', nombre_limpio)
         
-        # Limitar longitud para sistemas de archivos antiguos (255 caracteres máximo)
+        # Limitar longitud para sistemas de archivos antiguos
         if len(nombre_limpio) > 250:
             nombre_limpio = nombre_limpio[:250]
             
@@ -74,8 +85,12 @@ class FolderCreator:
         nombre_limpio = nombre_limpio.strip()
         
         return nombre_limpio
-    
-    def verificar_espacio_disponible(self, directorio: str, numero_carpetas: int) -> Tuple[bool, str]:
+
+    def verificar_espacio_disponible(
+        self,
+        directorio: str,
+        numero_carpetas: int
+    ) -> Tuple[bool, str]:
         """Verifica si hay suficiente espacio en disco.
         
         Args:
@@ -93,13 +108,20 @@ class FolderCreator:
             espacio_estimado = numero_carpetas * 4 * 1024
             
             if espacio_disponible < espacio_estimado:
-                return False, f"Espacio insuficiente en disco: {espacio_disponible / (1024*1024):.2f} MB disponibles"
+                mb_disponible = espacio_disponible / (1024*1024)
+                msg = (
+                    f"Espacio insuficiente en disco: "
+                    f"{mb_disponible:.2f} MB disponibles"
+                )
+                return False, msg
                 
-            return True, f"Espacio disponible: {espacio_disponible / (1024*1024):.2f} MB"
+            esp_mb = espacio_disponible / (1024*1024)
+            return True, f"Espacio disponible: {esp_mb:.2f} MB"
             
         except Exception as e:
-            return False, f"Error al verificar espacio en disco: {str(e)}"
-    
+            err_msg = f"Error al verificar espacio en disco: {str(e)}"
+            return False, err_msg
+
     def validar_plantilla(self, df: pd.DataFrame) -> Tuple[bool, str, List[str]]:
         """Valida la estructura y contenido de la plantilla.
         
@@ -109,13 +131,14 @@ class FolderCreator:
         Returns:
             Tupla con (es_valida, mensaje, advertencias)
         """
-        advertencias = []
+        advertencias: List[str] = []
         
         # Validar columnas requeridas
         columnas_requeridas = ['ID', 'NOMBRES']
         for col in columnas_requeridas:
             if col not in df.columns:
-                return False, f"Columna '{col}' no encontrada en la plantilla", advertencias
+                msg = f"Columna '{col}' no encontrada en la plantilla"
+                return False, msg, advertencias
         
         # Validar que haya filas con datos
         if df.empty:
@@ -123,19 +146,23 @@ class FolderCreator:
         
         # Verificar valores vacíos
         if df['ID'].isna().any():
-            advertencias.append("Hay filas con ID vacío que serán ignoradas")
+            msg_id = "Hay filas con ID vacío que serán ignoradas"
+            advertencias.append(msg_id)
             
         if df['NOMBRES'].isna().any():
-            advertencias.append("Hay filas con NOMBRES vacíos que serán ignoradas")
+            msg_nombres = "Hay filas con NOMBRES vacíos que serán ignoradas"
+            advertencias.append(msg_nombres)
         
         # Validar IDs duplicados
         duplicados = df[df.duplicated(subset=['ID'], keep=False)]
         if not duplicados.empty:
             ids_duplicados = duplicados['ID'].unique()
-            advertencias.append(f"Se encontraron IDs duplicados: {', '.join(ids_duplicados)}")
+            duplicados_str = ', '.join(ids_duplicados)
+            msg_dup = f"Se encontraron IDs duplicados: {duplicados_str}"
+            advertencias.append(msg_dup)
         
         return True, "Plantilla válida", advertencias
-    
+
     def crear_contenido_pestaña(self, parent: ctk.CTkFrame):
         """Create tab content."""
         frame = ctk.CTkFrame(parent)
@@ -161,7 +188,7 @@ class FolderCreator:
         self.estado_text = ctk.CTkTextbox(frame, height=200)
         self.estado_text.pack(pady=10, fill="both", expand=True)
         self.estado_text.configure(state="disabled")
-        
+
     def cargar_plantilla(self):
         """Load and process Excel template."""
         try:
@@ -179,7 +206,10 @@ class FolderCreator:
                 return
                 
             # Procesar plantilla
-            exito, mensaje = self.procesar_plantilla(ruta_excel, directorio_salida)
+            exito, mensaje = self.procesar_plantilla(
+                ruta_excel, 
+                directorio_salida
+            )
             if exito:
                 messagebox.showinfo(
                     "Éxito",
@@ -192,26 +222,28 @@ class FolderCreator:
                 )
                 
         except Exception as e:
+            error_msg = f"Error al procesar plantilla: {str(e)}"
             messagebox.showerror(
                 "Error",
-                f"Error al procesar plantilla: {str(e)}"
+                error_msg
             )
-            
+
     def seleccionar_directorio_salida(self):
         """Select output directory."""
         directorio = filedialog.askdirectory(
             title="Seleccionar directorio de salida"
         )
         if directorio:
-            self.agregar_estado(f"Directorio seleccionado: {directorio}")
-            
+            msg = f"Directorio seleccionado: {directorio}"
+            self.agregar_estado(msg)
+
     def agregar_estado(self, texto: str):
         """Add text to status area."""
         self.estado_text.configure(state="normal")
         self.estado_text.insert("end", texto + "\n")
         self.estado_text.see("end")
         self.estado_text.configure(state="disabled")
-    
+
     def agrupar_por_categoria(self, df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
         """Agrupa los datos por categoría si existe.
         
@@ -225,15 +257,19 @@ class FolderCreator:
             # Reemplazar valores nulos en CATEGORIA con 'SIN_CATEGORIA'
             df['CATEGORIA'] = df['CATEGORIA'].fillna('SIN_CATEGORIA')
             # Agrupar por categoría
-            return {categoria: grupo for categoria, grupo in df.groupby('CATEGORIA')}
+            grupos = {
+                categoria: grupo 
+                for categoria, grupo in df.groupby('CATEGORIA')
+            }
+            return grupos
         else:
             # Si no hay categoría, usar una categoría por defecto
             return {'SIN_CATEGORIA': df}
-    
+
     def cancelar_proceso(self):
         """Cancela el proceso de creación de carpetas."""
         self.cancelar = True
-        
+
     def procesar_plantilla(
         self, 
         ruta_excel: str, 
@@ -301,8 +337,9 @@ class FolderCreator:
                 # Crear directorio de categoría si es necesario
                 directorio_categoria = directorio_salida
                 if categoria != 'SIN_CATEGORIA':
-                    directorio_categoria = os.path.join(directorio_salida, categoria)
-                    os.makedirs(directorio_categoria, exist_ok=True)
+                    ruta_cat = os.path.join(directorio_salida, categoria)
+                    os.makedirs(ruta_cat, exist_ok=True)
+                    directorio_categoria = ruta_cat
                 
                 for idx, row in grupo_df.iterrows():
                     if self.cancelar:
@@ -319,14 +356,18 @@ class FolderCreator:
                     nombre_base = f"{row['ID']} - {row['NOMBRES']}"
                     
                     # Agregar apellidos si existen
-                    if 'APELLIDOS' in df.columns and pd.notna(row.get('APELLIDOS', '')):
-                        nombre_base += f" {row['APELLIDOS']}"
+                    apellidos = row.get('APELLIDOS', '')
+                    if 'APELLIDOS' in df.columns and pd.notna(apellidos):
+                        nombre_base += f" {apellidos}"
                     
                     # Limpiar y normalizar nombre de carpeta
                     nombre_carpeta = self.limpiar_nombre_carpeta(nombre_base)
                     
                     # Mantener la estructura de categorías
-                    ruta_carpeta = os.path.join(directorio_categoria, nombre_carpeta)
+                    ruta_carpeta = os.path.join(
+                        directorio_categoria, 
+                        nombre_carpeta
+                    )
                     
                     # Manejar carpetas existentes
                     if os.path.exists(ruta_carpeta):

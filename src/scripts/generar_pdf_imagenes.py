@@ -3,38 +3,52 @@ Script para generar PDFs a partir de imágenes con características específicas
 
 Este script toma un directorio de imágenes y genera un PDF con todas ellas,
 asegurando que estén en orientación horizontal, con márgenes exactos de 1 cm
-en todos los lados, centradas correctamente y con numeración de página opcional.
+en todos los lados, centradas correctamente y con numeración de página 
+opcional. Permite elegir entre tres niveles de calidad y estima el tamaño 
+resultante.
 
 Creado para Fundación ProMITIERRA - Herramientas de procesamiento documental.
 
 Uso:
-    python generar_pdf_imagenes.py [directorio] [--output RUTA] [--debug] [--no-page-numbers]
+    python generar_pdf_imagenes.py [directorio] [opciones]
 
 Argumentos:
     directorio:          Ruta al directorio con las imágenes a procesar
     --output, -o:        Ruta de salida del PDF (opcional)
     --debug, -d:         Muestra información adicional durante la ejecución
     --no-page-numbers:   No incluir números de página en el documento
+    --calidad:           Nivel de calidad: baja, media, maxima (por defecto: 
+                         media)
+    --solo-estimar:      Solo estima el tamaño sin generar el PDF
 
 Ejemplos:
     python generar_pdf_imagenes.py "C:/Directorio/Imagenes"
-    python generar_pdf_imagenes.py "C:/Directorio/Imagenes" --no-page-numbers
-    python generar_pdf_imagenes.py "C:/Directorio/Imagenes" -o "C:/Salida/resultado.pdf"
+    python generar_pdf_imagenes.py "C:/Directorio/Imagenes" --calidad maxima
+    python generar_pdf_imagenes.py "C:/Directorio/Imagenes" --solo-estimar
+    python generar_pdf_imagenes.py "C:/Directorio/Imagenes" -o 
+                                            "C:/Salida/resultado.pdf"
 """
 
 import os
 from pathlib import Path
 import sys
 import logging
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable, Tuple, List
+# type: ignore[import]
 from PIL import Image
+# type: ignore[import]
 from reportlab.lib.pagesizes import letter, landscape
+# type: ignore[import]
 from reportlab.pdfgen import canvas
+# type: ignore[import]
 from reportlab.lib.units import cm
 import argparse
 
 # Configurar logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Agregar el directorio raíz del proyecto al path
@@ -48,9 +62,14 @@ CONFIGURACIONES_CALIDAD = {
     "maxima": {"dpi": 600, "calidad": 100, "formato_temp": "PNG"}
 }
 
-def estimar_tamano_pdf(directorio_imagenes: str, nivel_calidad: str) -> Tuple[float, str]:
+
+def estimar_tamano_pdf(
+    directorio_imagenes: str, 
+    nivel_calidad: str
+) -> Tuple[float, str]:
     """
-    Estima el tamaño aproximado del PDF resultante basado en las imágenes y nivel de calidad.
+    Estima el tamaño aproximado del PDF resultante basado en las imágenes 
+    y nivel de calidad.
     
     Args:
         directorio_imagenes (str): Ruta al directorio con las imágenes
@@ -59,10 +78,11 @@ def estimar_tamano_pdf(directorio_imagenes: str, nivel_calidad: str) -> Tuple[fl
     Returns:
         Tuple[float, str]: Tamaño estimado (en MB) y unidad
     """
-    config = CONFIGURACIONES_CALIDAD[nivel_calidad]
+    # Usamos la configuración aunque no todas las propiedades se usen directamente
+    _ = CONFIGURACIONES_CALIDAD[nivel_calidad]
     
     # Obtener lista de imágenes
-    imagenes = []
+    imagenes: List[Path] = []
     for ext in ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp']:
         imagenes.extend(Path(directorio_imagenes).glob(f'*{ext}'))
     
@@ -92,6 +112,7 @@ def estimar_tamano_pdf(directorio_imagenes: str, nivel_calidad: str) -> Tuple[fl
     else:
         return tamano_estimado, "MB"
 
+
 def generar_pdf_con_imagenes(
     directorio_imagenes: str,
     ruta_salida: str,
@@ -112,8 +133,10 @@ def generar_pdf_con_imagenes(
         directorio_imagenes (str): Ruta al directorio que contiene las imágenes
         ruta_salida (str): Ruta donde se guardará el PDF generado
         debug (bool, opcional): Activa el modo debug para información adicional
-        incluir_numeros_pagina (bool, opcional): Indica si se deben incluir números de página
-        callback_progreso (Callable, opcional): Función a llamar para reportar progreso
+        incluir_numeros_pagina (bool, opcional): Indica si se deben incluir 
+            números de página
+        callback_progreso (Callable, opcional): Función a llamar para reportar 
+            progreso
         nivel_calidad (str): Nivel de calidad (baja, media, maxima)
     
     Returns:
@@ -137,7 +160,8 @@ def generar_pdf_con_imagenes(
         
     # Configurar tamaño de página y márgenes
     margen = 1 * cm  # 1 centímetro exacto
-    ancho_pagina, alto_pagina = landscape(letter)  # Forzar orientación horizontal
+    # Forzar orientación horizontal
+    ancho_pagina, alto_pagina = landscape(letter)
     
     # Calcular área disponible para la imagen
     ancho_disponible = ancho_pagina - (2 * margen)
@@ -147,7 +171,7 @@ def generar_pdf_con_imagenes(
     c = canvas.Canvas(ruta_salida, pagesize=landscape(letter))
     
     # Obtener lista de imágenes y ordenarlas
-    imagenes = []
+    imagenes: List[Path] = []
     for ext in ['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp']:
         imagenes.extend(Path(directorio_imagenes).glob(f'*{ext}'))
     imagenes = sorted(imagenes, key=lambda x: x.name)
@@ -163,7 +187,8 @@ def generar_pdf_con_imagenes(
         try:
             # Abrir y procesar la imagen
             with Image.open(ruta_imagen) as img:
-                # Convertir a RGB si es necesario pero preservando canal alfa si existe
+                # Convertir a RGB si es necesario pero preservando canal alfa si 
+                # existe
                 if img.mode == 'RGBA' and formato_temp == "PNG":
                     # Mantener el canal alfa para mejor calidad en PNG
                     pass
@@ -199,10 +224,14 @@ def generar_pdf_con_imagenes(
                     )
                 elif nivel_calidad != "maxima" or escala < 1:
                     # En calidad baja o media, siempre redimensionar
+                    resample_method = (
+                        Image.Resampling.LANCZOS 
+                        if nivel_calidad != "baja" 
+                        else Image.Resampling.BICUBIC
+                    )
                     img = img.resize(
                         (nuevo_ancho, nuevo_alto), 
-                        Image.Resampling.LANCZOS if nivel_calidad != "baja" 
-                        else Image.Resampling.BICUBIC
+                        resample_method
                     )
                 else:
                     # Si no es necesario reducir con calidad máxima
@@ -213,11 +242,16 @@ def generar_pdf_con_imagenes(
                 y = margen + (alto_disponible - nuevo_alto) / 2
                 
                 # Guardar la imagen temporalmente con calidad configurada
-                temp_img_path = temp_dir / f"temp_img_{num_pagina}.{formato_temp.lower()}"
+                formato_str = str(formato_temp).lower()
+                temp_img_path = temp_dir / f"temp_img_{num_pagina}.{formato_str}"
                 
                 # Guardar con el formato y calidad configurada
                 if formato_temp == "PNG":
-                    img.save(temp_img_path, format=formato_temp, dpi=(dpi, dpi))
+                    img.save(
+                        temp_img_path, 
+                        format=formato_temp, 
+                        dpi=(dpi, dpi)
+                    )
                 else:
                     img.save(
                         temp_img_path, 
@@ -252,9 +286,12 @@ def generar_pdf_con_imagenes(
                 if callback_progreso:
                     callback_progreso(num_pagina, total_imagenes)
                 
-                logger.info(
-                    f"Procesada imagen {num_pagina} de {total_imagenes}: {ruta_imagen.name}"
+                # Mensaje de progreso
+                msg_progreso = (
+                    f"Procesada imagen {num_pagina} de {total_imagenes}: "
                 )
+                msg_progreso += f"{ruta_imagen.name}"
+                logger.info(msg_progreso)
                 
         except Exception as e:
             logger.error(f"Error procesando {ruta_imagen.name}: {str(e)}")
@@ -270,11 +307,12 @@ def generar_pdf_con_imagenes(
     
     # Limpiar archivos temporales
     try:
-        for temp_file in temp_dir.glob(f"temp_img_*.*"):
+        for temp_file in temp_dir.glob("temp_img_*.*"):
             temp_file.unlink()
         temp_dir.rmdir()
     except Exception as e:
         logger.warning(f"Error al limpiar archivos temporales: {str(e)}")
+
 
 def main():
     """
@@ -291,7 +329,10 @@ def main():
     parser = argparse.ArgumentParser(
         description='Genera un PDF a partir de imágenes en un directorio.'
     )
-    parser.add_argument('directorio', help='Directorio que contiene las imágenes')
+    parser.add_argument(
+        'directorio', 
+        help='Directorio que contiene las imágenes'
+    )
     parser.add_argument(
         '--output', '-o', 
         help='Ruta de salida del PDF (opcional)'
@@ -327,10 +368,11 @@ def main():
         
     # Estimar el tamaño del PDF resultante
     tamano_estimado, unidad = estimar_tamano_pdf(args.directorio, args.calidad)
-    logger.info(
+    mensaje_estimacion = (
         f"Tamaño estimado del PDF con calidad {args.calidad}: "
-        f"{tamano_estimado:.2f} {unidad}"
     )
+    mensaje_estimacion += f"{tamano_estimado:.2f} {unidad}"
+    logger.info(mensaje_estimacion)
     
     # Si solo se quiere estimar, terminar aquí
     if args.solo_estimar:
@@ -386,10 +428,13 @@ def main():
             assert f.readable(), "El PDF no se puede leer"
             contenido = f.read()
             assert len(contenido) > 0, "El PDF está vacío"
-            logger.info("Verificación final completada: PDF generado correctamente")
+            msg_verificacion = "Verificación final completada: "
+            msg_verificacion += "PDF generado correctamente"
+            logger.info(msg_verificacion)
     except Exception as e:
         logger.error(f"Error en la verificación final: {str(e)}")
         raise
+
 
 if __name__ == "__main__":
     main() 
