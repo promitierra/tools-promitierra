@@ -18,6 +18,21 @@ from src.scripts.generar_pdf_imagenes import generar_pdf_con_imagenes
 import threading
 import logging
 from io import StringIO
+import sys
+
+# Configurar logger
+logging.basicConfig(
+    level=logging.DEBUG if 'dev' in sys.argv else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('herramientas_promitierra')
+
+# Versión de la aplicación
+APP_VERSION = "v0.2.4"
 
 class HelpModal(ctk.CTkToplevel):
     """Ventana modal para mostrar ayuda"""
@@ -82,10 +97,10 @@ class ImagenAPdfGUI:
     def __init__(self):
         """Inicializar la aplicación"""
         self.ventana = ctk.CTk()
-        self.ventana.title("Herramientas ProMITIERRA")
+        self.ventana.title(f"Herramientas ProMiTIERRA | {APP_VERSION}")
         # Aumentar el tamaño de la ventana para dar más espacio
         self.ventana.geometry("700x750")
-        self.ventana.resizable(False, False)
+        self.ventana.resizable(True, True)  # Permitir redimensionar la ventana
         
         # Variables
         self.modo_comprimido = ctk.BooleanVar(value=False)
@@ -189,9 +204,26 @@ Para una carpeta:
         self.pdf_resizer = PDFResizer()
         self.pdf_to_png_converter = PDFToPNGConverter()
         
+        # Registrar callback para redimensionado de ventana al cerrar
+        self.ventana.protocol("WM_DELETE_WINDOW", self.on_close)
+        
         # Crear interfaz
         self.crear_widgets()
     
+    def on_close(self):
+        """Manejar evento de cierre de la ventana"""
+        # Registrar las dimensiones actuales de la ventana
+        width = self.ventana.winfo_width()
+        height = self.ventana.winfo_height()
+        
+        # Verificar si estamos en modo desarrollo
+        if 'dev' in sys.argv:
+            logger.info(f"Dimensiones finales de la ventana: {width}x{height}")
+            print(f"Dimensiones finales de la ventana: {width}x{height}")
+        
+        # Cerrar la ventana
+        self.ventana.destroy()
+
     def mostrar_ayuda(self, tab_name):
         """Mostrar ventana de ayuda para la pestaña especificada"""
         if tab_name in self.help_texts:
@@ -1126,6 +1158,8 @@ Para una carpeta:
     
     def iniciar(self):
         """Iniciar la aplicación"""
+        # Registrar el inicio de la aplicación
+        logger.info(f"Iniciando aplicación Herramientas ProMITIERRA {APP_VERSION}")
         self.ventana.mainloop()
 
     # --- Métodos para PDF Consolidado --- 
