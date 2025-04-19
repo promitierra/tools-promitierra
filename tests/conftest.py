@@ -8,10 +8,56 @@ import shutil
 import tempfile
 import pytest
 from pathlib import Path
+from typing import List
+import importlib
 
-# Añadir directorio src al path de Python
-src_path = str(Path(__file__).parent.parent)
-sys.path.insert(0, src_path)
+# Añadir directorio raíz del proyecto al sys.path para que los módulos sean importables
+BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR))
+
+# Verificar si hay un entorno virtual activado y añadirlo al path si existe
+if "VIRTUAL_ENV" in os.environ:
+    venv_path = os.path.join(os.environ["VIRTUAL_ENV"], "lib", f"python{sys.version_info.major}.{sys.version_info.minor}", "site-packages")
+    print(f"Añadiendo al sys.path: {venv_path}")
+    sys.path.insert(0, venv_path)
+
+# Verificar si estamos usando venv en la carpeta del proyecto
+venv_dir = BASE_DIR / "venv" / "lib"
+if venv_dir.exists():
+    for py_dir in venv_dir.glob("python*"):
+        site_packages = py_dir / "site-packages"
+        if site_packages.exists():
+            print(f"Añadiendo al sys.path: {site_packages}")
+            sys.path.insert(0, str(site_packages))
+
+# Verificar si estamos usando .venv en la carpeta del proyecto
+venv_alt_dir = BASE_DIR / ".venv" / "lib"
+if venv_alt_dir.exists():
+    for py_dir in venv_alt_dir.glob("python*"):
+        site_packages = py_dir / "site-packages"
+        if site_packages.exists():
+            print(f"Añadiendo al sys.path: {site_packages}")
+            sys.path.insert(0, str(site_packages))
+
+# Verificar disponibilidad de dependencias críticas
+DEPENDENCIAS_CRITICAS = [
+    "PIL", "pandas", "customtkinter", "fitz", "PyPDF2"
+]
+
+def verificar_dependencias(dependencias: List[str]) -> None:
+    """Verifica si las dependencias necesarias están disponibles."""
+    for dep in dependencias:
+        try:
+            importlib.import_module(dep)
+            print(f"✅ Dependencia {dep} disponible")
+        except ImportError:
+            print(f"❌ Error al importar {dep}: No module named '{dep}'")
+
+print("Rutas de búsqueda actuales:")
+for path in sys.path[:5]:  # Mostrar solo las primeras 5 rutas para no saturar
+    print(f"- {path}")
+
+verificar_dependencias(DEPENDENCIAS_CRITICAS)
 
 @pytest.fixture
 def temp_dir():
