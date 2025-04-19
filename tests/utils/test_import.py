@@ -2,7 +2,7 @@ import sys
 import os
 
 # Obtener ruta al directorio de paquetes del entorno virtual
-env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.venv/lib/python3.12/site-packages')
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.venv/lib/python3.12/site-packages')
 print(f"Añadiendo al sys.path: {env_path}")
 sys.path.insert(0, env_path)
 

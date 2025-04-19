@@ -8,6 +8,9 @@ Este directorio contiene las pruebas automatizadas para el proyecto Herramientas
 tests/
 ├── unit/              # Pruebas unitarias (componentes individuales)
 ├── integration/       # Pruebas de integración (interacción entre componentes)
+├── utils/             # Scripts utilitarios para la ejecución de pruebas
+│   ├── run_tests.py   # Script principal para ejecución de pruebas
+│   └── test_import.py # Utilitario para verificar importaciones
 ├── data/              # Datos para pruebas
 │   ├── input/         # Archivos de entrada para pruebas
 │   └── expected/      # Resultados esperados para comparación
@@ -24,22 +27,27 @@ tests/
 
 Para ejecutar todas las pruebas:
 ```
-python -m pytest
+python run_tests.py
 ```
 
 Para ejecutar solo pruebas unitarias:
 ```
-python -m pytest tests/unit
+python run_tests.py --unit
 ```
 
 Para ejecutar solo pruebas de integración:
 ```
-python -m pytest tests/integration
+python run_tests.py --integration
 ```
 
 Para ejecutar tests con reporte de cobertura:
 ```
-python -m pytest --cov=src
+python run_tests.py
+```
+
+Para desactivar el reporte de cobertura:
+```
+python run_tests.py --no-cov
 ```
 
 ## Fixtures Compartidos
