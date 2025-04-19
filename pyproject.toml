@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tools-promitierra"
+version = "0.2.4"
+description = "Herramientas para procesamiento de archivos y documentos"
+requires-python = ">=3.10"
+dependencies = [
+    "Pillow>=10.1.0",
+    "PyPDF2>=3.0.0",
+    "customtkinter>=5.2.1",
+    "pandas>=2.1.4",
+    "openpyxl>=3.1.2",
+    "unidecode>=1.3.7",
+    "numpy>=1.24.0",
+    "opencv-python>=4.8.0",
+    "scikit-image>=0.21.0",
+    "reportlab>=4.1.0",
+    "PyMuPDF>=1.23.0",
+    "psutil>=5.9.0",
+    "matplotlib>=3.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "flake8",
+    "pytest",
+    "pytest-cov",
+    "mypy",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*" 
