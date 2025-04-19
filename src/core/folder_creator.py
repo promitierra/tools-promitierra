@@ -1,8 +1,15 @@
 """
+Módulo para la creación de carpetas desde plantillas Excel.
+"""
 import os
 import sys
 import shutil
 import re
+import pandas as pd
+from typing import Tuple, List, Dict, Optional
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
+from src.core.text_normalizer import TextNormalizer
 
 class FolderCreator:
     """Clase para crear carpetas desde plantillas Excel con validaciones."""
@@ -13,6 +20,7 @@ class FolderCreator:
     def __init__(self):
         """Inicializa el creador de carpetas."""
         self.cancelar = False
+        self.text_normalizer = TextNormalizer()
 
     def crear_plantilla(self, ruta_plantilla: str) -> Tuple[bool, str]:
         """Crea plantilla Excel para capturar datos de carpetas.

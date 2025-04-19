@@ -7,6 +7,7 @@ import multiprocessing
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image
+from src.scripts.generar_pdf_imagenes import estimar_tamano_pdf
 
 
 class PDFConverter:
@@ -222,3 +223,21 @@ class PDFConverter:
     def cancelar_proceso(self):
         """Cancela el proceso actual."""
         self.cancelar = True
+    
+    def estimar_tamanio_pdf_consolidado(self, directorio_imagenes, nivel_calidad="media"):
+        """
+        Estima el tamaño aproximado que tendría el PDF consolidado generado.
+        
+        Args:
+            directorio_imagenes (str): Ruta al directorio con las imágenes
+            nivel_calidad (str): Nivel de calidad (baja, media, maxima)
+            
+        Returns:
+            str: Texto con la estimación formateada
+        """
+        try:
+            # Usar la función ya implementada en el script
+            tamano_estimado, unidad = estimar_tamano_pdf(directorio_imagenes, nivel_calidad)
+            return f"{tamano_estimado:.2f} {unidad}"
+        except Exception as e:
+            return f"Error al estimar: {str(e)}"

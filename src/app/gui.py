@@ -12,8 +12,6 @@ from src.core.pdf_resizer import PDFResizer
 from src.core.pdf_to_png_converter import PDFToPNGConverter
 from ..utils.helpers import (
     agregar_detalle, 
-    actualizar_progreso, 
-    generar_nombre_zip,
     validar_directorio
 )
 from src.scripts.generar_pdf_imagenes import generar_pdf_con_imagenes
@@ -132,6 +130,20 @@ Esta herramienta convierte imágenes a archivos PDF.
 2. Haz clic en "Seleccionar Carpeta"
 3. Elige la carpeta que contiene las imágenes
 4. Espera a que se complete el proceso
+
+## PDF Consolidado:
+Esta opción crea un único PDF con todas las imágenes del directorio.
+
+### Niveles de Calidad:
+- Baja: Archivos más pequeños, ideal para compartir por correo (150 DPI)
+- Media: Equilibrio entre calidad y tamaño, recomendada (300 DPI)
+- Máxima: Mayor calidad visual pero archivos más grandes (600 DPI)
+
+### Pasos:
+1. Selecciona la carpeta con las imágenes usando el botón correspondiente
+2. Elige el nivel de calidad deseado
+3. Verifica la estimación de tamaño
+4. Haz clic en "Generar PDF Consolidado"
 """,
             "redimensionar_pdf": """
 # Ayuda - Redimensionar PDF
@@ -403,6 +415,77 @@ Para una carpeta:
             width=400
         )
         entry_nombre_consolidado.pack(side="left", fill="x", expand=True)
+        
+        # Frame para opciones de calidad
+        frame_calidad_consolidado = ctk.CTkFrame(elementos["contenedor"], fg_color="transparent")
+        frame_calidad_consolidado.pack(fill="x", pady=(5, 10), padx=20)
+        
+        lbl_calidad = ctk.CTkLabel(
+            frame_calidad_consolidado,
+            text="Nivel de Calidad:"
+        )
+        lbl_calidad.pack(side="left", padx=(0, 5))
+        
+        # Variable para la opción de calidad
+        self.calidad_consolidado = ctk.StringVar(value="media")
+        
+        # Opciones de calidad
+        opciones_frame = ctk.CTkFrame(frame_calidad_consolidado, fg_color="transparent")
+        opciones_frame.pack(side="left", fill="x")
+        
+        radio_baja = ctk.CTkRadioButton(
+            opciones_frame, 
+            text="Baja (más pequeño)", 
+            variable=self.calidad_consolidado, 
+            value="baja",
+            command=self.actualizar_estimacion_tamano
+        )
+        radio_baja.pack(side="left", padx=(0, 15))
+        
+        radio_media = ctk.CTkRadioButton(
+            opciones_frame, 
+            text="Media (recomendado)", 
+            variable=self.calidad_consolidado, 
+            value="media",
+            command=self.actualizar_estimacion_tamano
+        )
+        radio_media.pack(side="left", padx=(0, 15))
+        
+        radio_maxima = ctk.CTkRadioButton(
+            opciones_frame, 
+            text="Máxima (mejor calidad)", 
+            variable=self.calidad_consolidado, 
+            value="maxima",
+            command=self.actualizar_estimacion_tamano
+        )
+        radio_maxima.pack(side="left")
+        
+        # Frame para mostrar estimación de tamaño
+        frame_estimacion = ctk.CTkFrame(elementos["contenedor"], fg_color="transparent")
+        frame_estimacion.pack(fill="x", pady=(5, 10), padx=20)
+        
+        lbl_estimacion_titulo = ctk.CTkLabel(
+            frame_estimacion,
+            text="Estimación de tamaño:"
+        )
+        lbl_estimacion_titulo.pack(side="left", padx=(0, 5))
+        
+        # Variable para la estimación de tamaño
+        self.estimacion_tamano = ctk.StringVar(value="Seleccione una carpeta para ver la estimación")
+        
+        lbl_estimacion = ctk.CTkLabel(
+            frame_estimacion,
+            textvariable=self.estimacion_tamano
+        )
+        lbl_estimacion.pack(side="left", fill="x", expand=True)
+        
+        # Botón para solo estimar tamaño
+        self.btn_solo_estimar = ctk.CTkButton(
+            frame_estimacion,
+            text="Actualizar Estimación",
+            command=self.actualizar_estimacion_tamano
+        )
+        self.btn_solo_estimar.pack(side="right", padx=(10, 0))
         
         # Frame para botón de generar y progreso consolidado
         frame_accion_consolidado = ctk.CTkFrame(elementos["contenedor"], fg_color="transparent")
@@ -681,10 +764,6 @@ Para una carpeta:
                 
             def on_file_converted(self, nombre):
                 self.converted.append(nombre)
-                actualizar_progreso(
-                    self.gui.barra_progreso,
-                    len(self.converted) / self.files_found if self.files_found > 0 else 0
-                )
                 agregar_detalle(
                     self.gui.detalles,
                     f"Convertido: {nombre}"
@@ -700,7 +779,10 @@ Para una carpeta:
                 )
                 
             def on_progress(self, valor):
-                actualizar_progreso(self.gui.barra_progreso, valor)
+                agregar_detalle(
+                    self.gui.detalles,
+                    f"Progreso: {valor * 100:.2f}%"
+                )
                 
             def on_creating_zip(self):
                 """Llamado cuando se está creando el archivo ZIP"""
@@ -1115,21 +1197,51 @@ Para una carpeta:
         self.ventana.after(0, lambda: self.barra_progreso_consolidado.set(progreso))
         self.ventana.after(0, lambda: self.estado_consolidado.set(f"Procesando imagen {actual} de {total}..."))
 
+    def actualizar_estimacion_tamano(self):
+        """Actualizar la estimación de tamaño del PDF consolidado"""
+        directorio = self.ruta_carpeta_consolidado.get()
+        if not directorio or not os.path.isdir(directorio):
+            self.estimacion_tamano.set("Seleccione una carpeta para ver la estimación")
+            return
+        
+        try:
+            nivel_calidad = self.calidad_consolidado.get()
+            estimacion = self.pdf_converter.estimar_tamanio_pdf_consolidado(
+                directorio, 
+                nivel_calidad
+            )
+            self.estimacion_tamano.set(f"Estimado con calidad {nivel_calidad}: {estimacion}")
+        except Exception as e:
+            self.estimacion_tamano.set(f"Error al estimar: {str(e)}")
+
     def _ejecutar_generacion_consolidado(self, ruta_carpeta, ruta_salida_completa):
         """Ejecuta la función de generación de PDF y maneja resultados/errores."""
         try:
-            # Llamar a la función importada con el callback
+            # Obtener el nivel de calidad seleccionado
+            nivel_calidad = self.calidad_consolidado.get()
+            
+            # Llamar a la función importada con el callback y nivel de calidad
             generar_pdf_con_imagenes(
                 directorio_imagenes=ruta_carpeta, 
                 ruta_salida=ruta_salida_completa, 
-                incluir_numeros_pagina=True, # Se puede hacer configurable si se desea
-                callback_progreso=self._callback_progreso_gui
+                incluir_numeros_pagina=True, 
+                callback_progreso=self._callback_progreso_gui,
+                nivel_calidad=nivel_calidad
             )
             
             # Si no hubo excepciones:
-            self.ventana.after(0, lambda: self.estado_consolidado.set("¡PDF consolidado generado con éxito!"))
-            self.ventana.after(0, lambda: agregar_detalle(self.detalles, f"Éxito: PDF guardado en {ruta_salida_completa}", "success"))
-            self.ventana.after(0, lambda: messagebox.showinfo("Éxito", f"PDF consolidado generado exitosamente:\n{ruta_salida_completa}"))
+            self.ventana.after(0, lambda: self.estado_consolidado.set(
+                f"¡PDF consolidado generado con éxito! (Calidad: {nivel_calidad})"
+            ))
+            self.ventana.after(0, lambda: agregar_detalle(
+                self.detalles, 
+                f"Éxito: PDF guardado en {ruta_salida_completa}", 
+                "success"
+            ))
+            self.ventana.after(0, lambda: messagebox.showinfo(
+                "Éxito", 
+                f"PDF consolidado generado exitosamente:\n{ruta_salida_completa}"
+            ))
             # Asegurar que la barra llegue al 100%
             self.ventana.after(0, lambda: self.barra_progreso_consolidado.set(1.0))
             
